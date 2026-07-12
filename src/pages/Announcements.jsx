@@ -93,14 +93,13 @@ export default function Announcements() {
     load()
   }
 
-  async function postToNoticeBoard(item) {
+  async function postToNoticeBoard(announcement) {
     const { error } = await supabase
       .from('notice_board')
       .insert({
-        title: item.title,
-        message: item.message,
-        category: item.category,
-        created_by: user.id,
+        title: announcement.title,
+        message: announcement.message,
+        category: announcement.category,
       })
 
     if (error) {
