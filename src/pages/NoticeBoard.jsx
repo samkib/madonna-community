@@ -8,16 +8,26 @@ export default function NoticeBoard() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState([])
 
+  async function load() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('notice_board')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setItems(data || [])
+    setLoading(false)
+  }
+
+  async function deleteNotice(id) {
+    await supabase
+      .from('notice_board')
+      .delete()
+      .eq('id', id)
+
+    load()
+  }
+
   useEffect(() => {
-    async function load() {
-      setLoading(true)
-      const { data } = await supabase
-        .from('notice_board')
-        .select('*')
-        .order('created_at', { ascending: false })
-      setItems(data || [])
-      setLoading(false)
-    }
     load()
   }, [])
 
@@ -36,6 +46,13 @@ export default function NoticeBoard() {
           {items.map((n) => (
             <div key={n.id} className="estate-card p-5 break-inside-avoid relative">
               <Pin size={14} className="absolute -top-2 left-5 text-accent rotate-12" />
+              <button
+                onClick={() => deleteNotice(n.id)}
+                className="btn-ghost absolute top-4 right-4 text-xs"
+                title="Remove notice"
+              >
+                Delete
+              </button>
               <h3 className="font-display text-base text-ink mb-1.5">{n.title}</h3>
               <p className="text-sm text-ink-soft leading-relaxed">{n.message}</p>
               <p className="text-xs text-ink-soft/70 mt-3">

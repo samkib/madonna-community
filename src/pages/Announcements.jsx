@@ -66,9 +66,49 @@ export default function Announcements() {
     load()
   }
 
-  async function handleArchive(id) {
-    await supabase.from('announcements').update({ archived: true }).eq('id', id)
+  async function handleArchive(item) {
+    const { error: archiveError } = await supabase
+      .from('announcements')
+      .update({ archived: true })
+      .eq('id', item.id)
+
+    if (archiveError) {
+      alert(archiveError.message)
+      return
+    }
+
+    const { error: noticeError } = await supabase
+      .from('notice_board')
+      .insert({
+        title: item.title,
+        message: item.message,
+        created_at: item.created_at,
+      })
+
+    if (noticeError) {
+      alert(noticeError.message)
+      return
+    }
+
     load()
+  }
+
+  async function postToNoticeBoard(item) {
+    const { error } = await supabase
+      .from('notice_board')
+      .insert({
+        title: item.title,
+        message: item.message,
+        category: item.category,
+        created_by: user.id,
+      })
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    alert('Added to Notice Board')
   }
 
   return (
@@ -98,13 +138,21 @@ export default function Announcements() {
                   {a.is_urgent ? <UrgentBadge /> : null}
                 </div>
                 {isStaff ? (
-                  <button
-                    onClick={() => handleArchive(a.id)}
-                    className="btn-ghost !px-2.5 !py-1.5 text-xs"
-                    title="Archive to notice board"
-                  >
-                    <Archive size={14} /> Archive
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleArchive(a)}
+                      className="btn-ghost !px-2.5 !py-1.5 text-xs"
+                      title="Archive to notice board"
+                    >
+                      <Archive size={14} /> Archive
+                    </button>
+                    <button
+                      onClick={() => postToNoticeBoard(a)}
+                      className="btn-ghost"
+                    >
+                      Pin to Notice Board
+                    </button>
+                  </div>
                 ) : null}
               </div>
               <p className="text-sm text-ink-soft mt-2 leading-relaxed">{a.message}</p>
