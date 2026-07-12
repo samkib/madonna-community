@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: 241 238 230;
+  --color-surface: 255 255 255;
+  --color-surface-alt: 233 228 216;
+  --color-ink: 27 36 32;
+  --color-ink-soft: 90 95 85;
+  --color-primary: 31 61 46;
+  --color-primary-soft: 46 90 67;
+  --color-accent: 166 124 61;
+  --color-accent-soft: 217 199 163;
+  --color-line: 216 210 196;
+  --color-pending: 184 134 46;
+  --color-progress: 43 103 119;
+  --color-solved: 47 110 78;
+  --color-urgent: 162 62 62;
+}
+
+.dark {
+  --color-bg: 14 26 20;
+  --color-surface: 20 37 28;
+  --color-surface-alt: 26 46 35;
+  --color-ink: 232 227 216;
+  --color-ink-soft: 158 168 155;
+  --color-primary: 111 174 139;
+  --color-primary-soft: 84 140 108;
+  --color-accent: 201 161 92;
+  --color-accent-soft: 90 74 47;
+  --color-line: 42 61 48;
+  --color-pending: 214 165 79;
+  --color-progress: 92 168 186;
+  --color-solved: 96 178 137;
+  --color-urgent: 214 108 108;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-bg text-ink font-body antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 100% -10%, rgb(var(--color-primary) / 0.05), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgb(var(--color-accent) / 0.06), transparent 60%);
+  background-attachment: fixed;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background: rgb(var(--color-accent) / 0.35);
+}
+
+/* Scrollbars */
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--color-line)) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: rgb(var(--color-line)); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Keyboard focus visibility */
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible,
+select:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid rgb(var(--color-accent));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@layer components {
+  /* Card: engraved plaque nameplate strip under the header, not a colored side-bar */
+  .estate-card {
+    @apply relative bg-surface rounded-card border border-line shadow-card dark:shadow-card-dark;
+  }
+  .estate-card-header {
+    @apply relative flex items-center justify-between px-5 sm:px-6 py-4 border-b border-line;
+  }
+  .estate-card-header::after {
+    content: '';
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, rgb(var(--color-accent) / 0.55), transparent 70%);
+  }
+
+  /* Glass panel used for sidebar / overlays / modals */
+  .glass-panel {
+    background: rgb(var(--color-surface) / 0.72);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgb(var(--color-line) / 0.7);
+  }
+
+  /* The signature Unit Plaque component */
+  .unit-plaque {
+    @apply inline-flex items-center gap-2 rounded-plaque px-3 py-1.5 font-mono text-sm tracking-wide;
+    background: linear-gradient(160deg, rgb(var(--color-primary)) 0%, rgb(var(--color-primary-soft)) 100%);
+    color: rgb(var(--color-accent-soft));
+    box-shadow: var(--tw-shadow, 0 1px 0 rgba(255,255,255,0.15) inset), 0 2px 6px -2px rgba(0,0,0,0.4);
+    border: 1px solid rgb(var(--color-accent) / 0.35);
+  }
+  .unit-plaque-blank {
+    @apply inline-flex items-center justify-center rounded-plaque border-2 border-dashed;
+    border-color: rgb(var(--color-line));
+    color: rgb(var(--color-ink-soft));
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-plaque bg-primary text-accent-soft font-medium px-4 py-2.5 transition-all duration-200 hover:brightness-110 hover:-translate-y-px active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none shadow-plaque;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-plaque border border-line bg-surface text-ink font-medium px-4 py-2.5 transition-all duration-200 hover:border-accent hover:-translate-y-px active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-plaque text-ink-soft font-medium px-3 py-2 transition-colors duration-200 hover:text-ink hover:bg-surface-alt;
+  }
+
+  .input-field {
+    @apply w-full rounded-plaque border border-line bg-surface px-3.5 py-2.5 text-ink placeholder:text-ink-soft/60 transition-colors duration-200 focus:border-accent outline-none;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+}
