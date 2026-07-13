@@ -15,6 +15,7 @@ export default function Suggestions() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [title, setTitle] = useState('')
 
   async function load() {
     setLoading(true)
@@ -45,6 +46,7 @@ export default function Suggestions() {
     const { error } = await supabase.from('suggestions').insert({
       profile_id: user.id,
       unit_id: unit.id,
+      title,
       message,
     })
     setSubmitting(false)
@@ -93,6 +95,16 @@ export default function Suggestions() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New suggestion">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-ink-soft mb-1.5">Title</label>
+            <input
+              required
+              className="input-field"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Suggestion title"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1.5">Your suggestion</label>
             <textarea

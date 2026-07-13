@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Building2, Plus, UserMinus, UserPlus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import Loader from '../components/Loader'
@@ -7,6 +8,7 @@ import Modal from '../components/Modal'
 import UnitPlaque from '../components/UnitPlaque'
 
 export default function Units() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [units, setUnits] = useState([])
   const [search, setSearch] = useState('')
@@ -150,7 +152,11 @@ export default function Units() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((u) => (
-            <div key={u.id} className="estate-card p-5 flex flex-col gap-3">
+            <div
+              key={u.id}
+              onClick={() => navigate(`/units/${u.id}`)}
+              className="estate-card p-5 flex flex-col gap-3 cursor-pointer hover:scale-[1.02] transition"
+            >
               <div className="flex items-center justify-between">
                 <UnitPlaque unitNumber={u.unit_number} />
                 <span
@@ -172,7 +178,10 @@ export default function Units() {
               <div className="mt-auto pt-2">
                 {u.status === 'occupied' ? (
                   <button
-                    onClick={() => handleRemove(u)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRemove(u)
+                    }}
                     disabled={removingId === u.id}
                     className="btn-secondary w-full !py-2 text-sm"
                   >
@@ -180,7 +189,13 @@ export default function Units() {
                     {removingId === u.id ? 'Removing…' : 'Remove resident'}
                   </button>
                 ) : (
-                  <button onClick={() => openAssign(u)} className="btn-primary w-full !py-2 text-sm">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openAssign(u)
+                    }}
+                    className="btn-primary w-full !py-2 text-sm"
+                  >
                     <UserPlus size={14} /> Add resident
                   </button>
                 )}

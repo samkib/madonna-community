@@ -175,7 +175,7 @@ export default function Announcements() {
               className="input-field"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Water supply interruption"
+              placeholder="e.g. To All"
             />
           </div>
           <div>

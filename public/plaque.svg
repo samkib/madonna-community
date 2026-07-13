@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="4" y="4" width="56" height="56" rx="10" fill="#1F3D2E"/>
-  <rect x="9" y="9" width="46" height="46" rx="7" fill="none" stroke="#A67C3D" stroke-width="1.5"/>
-  <text x="32" y="41" font-family="Georgia, serif" font-size="26" font-weight="600" fill="#EDE8DC" text-anchor="middle">M</text>
-</svg>

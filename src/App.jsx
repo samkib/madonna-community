@@ -11,6 +11,7 @@ import MaintenanceRequests from './pages/MaintenanceRequests'
 import Complaints from './pages/Complaints'
 import Suggestions from './pages/Suggestions'
 import Units from './pages/Units'
+import UnitDetails from './pages/UnitDetails'
 import Settings from './pages/Settings'
 
 export default function App() {
@@ -38,6 +39,14 @@ export default function App() {
                 element={
                   <ProtectedRoute allowedRoles={['caretaker', 'chairperson', 'landlady']}>
                     <Units />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/units/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['caretaker', 'chairperson', 'landlady']}>
+                    <UnitDetails />
                   </ProtectedRoute>
                 }
               />

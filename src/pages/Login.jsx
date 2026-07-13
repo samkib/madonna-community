@@ -42,10 +42,10 @@ export default function Login() {
       <div className="w-full max-w-sm animate-fade-up">
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-plaque bg-primary flex items-center justify-center shadow-plaque mb-4">
-            <span className="font-display text-accent-soft text-2xl font-semibold">M</span>
+            <span className="font-display text-accent-soft text-2xl font-semibold">🏢</span>
           </div>
           <h1 className="font-display text-2xl text-ink">Madonna Community</h1>
-          <p className="text-sm text-ink-soft mt-1">Sign in to your resident portal</p>
+        
         </div>
 
         <form onSubmit={handleSubmit} className="estate-card p-6 space-y-4">
@@ -102,9 +102,9 @@ export default function Login() {
         </form>
 
         <p className="text-center text-xs text-ink-soft mt-6">
-          Accounts are created by your estate's chairperson or landlady.
+          Accounts are created by Madonna landlady or chairperson.
           <br />
-          Trouble signing in? Speak to your caretaker.
+          Trouble signing in? Speak to caretaker or chairperson.
         </p>
       </div>
     </div>

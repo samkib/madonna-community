@@ -45,7 +45,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
         <div className="flex items-center justify-between px-5 py-5 border-b border-line">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-plaque bg-primary flex items-center justify-center shadow-plaque">
-              <span className="font-display text-accent-soft text-lg font-semibold">M</span>
+              <span className="font-display text-accent-soft text-lg font-semibold">🏢</span>
             </div>
             <div>
               <p className="font-display text-base leading-none text-ink">Madonna</p>
