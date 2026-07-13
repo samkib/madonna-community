@@ -21,11 +21,18 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
-  // Never intercept Supabase API calls — always go to the network for those.
-  if (event.request.url.includes('supabase.co')) return
+  if (
+    event.request.url.includes('supabase.co') ||
+    event.request.url.includes('fonts.googleapis.com') ||
+    event.request.url.includes('fonts.gstatic.com')
+  ) {
+    return
+  }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(event.request).then((cached) => {
+      return cached || fetch(event.request)
+    })
   )
 })
 
