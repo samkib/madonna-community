@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import { LogIn, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -95,6 +95,12 @@ export default function Login() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+          </div>
+
+          <div className="text-right -mt-2">
+            <Link to="/forgot-password" className="text-xs text-ink-soft hover:text-accent">
+              Forgot password?
+            </Link>
           </div>
 
           {error ? (

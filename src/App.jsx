@@ -4,6 +4,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Announcements from './pages/Announcements'
 import NoticeBoard from './pages/NoticeBoard'
@@ -21,6 +23,8 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               element={
                 <ProtectedRoute>
