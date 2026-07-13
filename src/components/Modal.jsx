@@ -22,7 +22,7 @@ export default function Modal({ open, onClose, title, children, footer }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-lg glass-panel rounded-card shadow-card dark:shadow-card-dark animate-fade-up">
+      <div className="relative w-full max-w-lg modal-panel rounded-card shadow-card dark:shadow-card-dark animate-fade-up">
         <div className="estate-card-header">
           <h3 className="font-display text-lg text-ink">{title}</h3>
           <button onClick={onClose} className="btn-ghost p-1.5" aria-label="Close">

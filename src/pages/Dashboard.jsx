@@ -99,6 +99,15 @@ export default function Dashboard() {
           occupied,
           vacant,
         })
+      } else {
+        const { data: requests } = await supabase
+          .from('maintenance_requests')
+          .select('*')
+          .eq('profile_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(3)
+        if (!active) return
+        setMyRequests(requests || [])
       }
 
       if (active) setLoading(false)

@@ -97,12 +97,23 @@ select:focus-visible, [tabindex]:focus-visible {
     background: linear-gradient(90deg, rgb(var(--color-accent) / 0.55), transparent 70%);
   }
 
-  /* Glass panel used for sidebar / overlays / modals */
+  /* Glass panel used for sidebar / topbar — light translucency is fine
+       since there's nothing text-dense sitting directly behind it. */
   .glass-panel {
     background: rgb(var(--color-surface) / 0.72);
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     border: 1px solid rgb(var(--color-line) / 0.7);
+  }
+
+  /* Modals sit on top of full pages of text, so they need to actually
+     block what's behind them rather than let it bleed through labels
+     and inputs. Same frosted look, much higher opacity. */
+  .modal-panel {
+    background: rgb(var(--color-surface) / 0.97);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgb(var(--color-line));
   }
 
   /* The signature Unit Plaque component */
