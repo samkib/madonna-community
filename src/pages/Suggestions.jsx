@@ -63,7 +63,7 @@ export default function Suggestions() {
     <div className="space-y-6 animate-fade-up">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <p className="text-sm text-ink-soft max-w-sm">
-          Ideas to make the estate better — shared with the caretaker and management.
+          Ideas to make the estate better — shared with the management.
         </p>
         {!isStaff ? (
           <button onClick={() => setModalOpen(true)} className="btn-primary">
