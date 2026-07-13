@@ -15,12 +15,28 @@ export function isPushSupported() {
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
+function withTimeout(promise, ms, timeoutMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMessage)), ms)),
+  ])
+}
+
 export async function getPushStatus() {
   if (!isPushSupported()) return 'unsupported'
   if (Notification.permission === 'denied') return 'denied'
-  const registration = await navigator.serviceWorker.ready
-  const existing = await registration.pushManager.getSubscription()
-  return existing ? 'subscribed' : 'not-subscribed'
+  try {
+    const registration = await withTimeout(
+      navigator.serviceWorker.ready,
+      8000,
+      'Service worker did not activate in time.'
+    )
+    const existing = await registration.pushManager.getSubscription()
+    return existing ? 'subscribed' : 'not-subscribed'
+  } catch (err) {
+    console.error('getPushStatus failed:', err.message)
+    return 'error'
+  }
 }
 
 export async function subscribeToPush(profileId) {
@@ -32,7 +48,11 @@ export async function subscribeToPush(profileId) {
     throw new Error('Notification permission was not granted.')
   }
 
-  const registration = await navigator.serviceWorker.ready
+  const registration = await withTimeout(
+    navigator.serviceWorker.ready,
+    8000,
+    'Service worker did not activate in time. Try reloading the page.'
+  )
   let subscription = await registration.pushManager.getSubscription()
 
   if (!subscription) {

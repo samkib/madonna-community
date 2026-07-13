@@ -25,7 +25,10 @@ export default function Settings() {
       setPushStatus('unsupported')
       return
     }
-    getPushStatus().then(setPushStatus)
+
+    getPushStatus()
+      .then(setPushStatus)
+      .catch(() => setPushStatus('error'))
   }, [])
 
   async function handleEnableNotifications() {
