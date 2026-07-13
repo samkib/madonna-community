@@ -30,16 +30,22 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 relative overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/estate-photo.jpg')" }}
+      />
+      <div className="absolute inset-0 bg-bg/85 backdrop-blur-[2px]" />
+
       <button
         onClick={toggleTheme}
-        className="btn-secondary !px-3 !py-2 absolute top-5 right-5"
+        className="btn-secondary !px-3 !py-2 absolute top-5 right-5 z-10"
         aria-label="Toggle theme"
       >
         {isDark ? <Sun size={16} /> : <Moon size={16} />}
       </button>
 
-      <div className="w-full max-w-sm animate-fade-up">
+      <div className="w-full max-w-sm animate-fade-up relative z-10">
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-plaque bg-primary flex items-center justify-center shadow-plaque mb-4">
             <span className="font-display text-accent-soft text-2xl font-semibold">🏢</span>
