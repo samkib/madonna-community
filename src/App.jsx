@@ -15,8 +15,12 @@ import Suggestions from './pages/Suggestions'
 import Units from './pages/Units'
 import UnitDetails from './pages/UnitDetails'
 import Settings from './pages/Settings'
+import Payments from './pages/Payments'
+import Messages from './pages/Messages'
+
 
 export default function App() {
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -54,7 +58,19 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/payments"
+                element={<Payments />}
+              />
+
+              <Route
+                path="/messages/:conversationId"
+                element={<Messages />}
+              />
+
               <Route path="/settings" element={<Settings />} />
+
+
             </Route>
           </Routes>
         </BrowserRouter>

@@ -64,7 +64,8 @@ export default function Dashboard() {
           pendingMaintenance,
           pendingComplaints,
           totalSuggestions,
-          unitsData
+          unitsData,
+          paymentsData
         ] = await Promise.all([
           supabase
             .from('maintenance_requests')
@@ -81,6 +82,10 @@ export default function Dashboard() {
           supabase
             .from('units')
             .select('status'),
+
+          supabase
+            .from('payments')
+            .select('unit_id, status'),
         ])
 
         const occupied = (unitsData.data || []).filter(
@@ -91,6 +96,26 @@ export default function Dashboard() {
           (u) => u.status === 'vacant'
         ).length
 
+        const paidUnitIds = new Set(
+          (paymentsData.data || [])
+            .filter((p) => p.status === 'paid')
+            .map((p) => p.unit_id)
+        )
+
+        const unpaidUnitIds = new Set(
+          (paymentsData.data || [])
+            .filter(
+              (p) =>
+                p.status === 'unpaid' ||
+                p.status === 'partial' ||
+                p.status === 'pending'
+            )
+            .map((p) => p.unit_id)
+        )
+
+        const paid = paidUnitIds.size
+        const unpaid = unpaidUnitIds.size
+
         if (!active) return
         setStats({
           pendingMaintenance: pendingMaintenance.count ?? 0,
@@ -98,6 +123,8 @@ export default function Dashboard() {
           totalSuggestions: totalSuggestions.count ?? 0,
           occupied,
           vacant,
+          paid,
+          unpaid,
         })
       } else {
         const { data: requests } = await supabase
@@ -128,11 +155,23 @@ export default function Dashboard() {
       </div>
 
       {isStaff ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           <StatCard icon={Wrench} label="Pending maintenance" value={stats.pendingMaintenance} to="/maintenance" />
           <StatCard icon={MessageSquareWarning} label="Pending complaints" value={stats.pendingComplaints} to="/complaints" />
           <StatCard icon={Lightbulb} label="Suggestions" value={stats.totalSuggestions} to="/suggestions" />
           <StatCard icon={Building2} label="Occupied / Vacant" value={`${stats.occupied} / ${stats.vacant}`} to="/units" />
+          <StatCard
+            icon={Home}
+            label="Paid units"
+            value={stats.paid}
+            to="/units?payment=paid"
+          />
+          <StatCard
+            icon={Home}
+            label="Unpaid units"
+            value={stats.unpaid}
+            to="/units?payment=unpaid"
+          />
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">

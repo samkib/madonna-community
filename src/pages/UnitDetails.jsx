@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import Loader from '../components/Loader'
 
 export default function UnitDetails() {
+  const navigate = useNavigate()
   const { id } = useParams()
+
 
   const [loading, setLoading] = useState(true)
   const [unit, setUnit] = useState(null)
+  const [conversationId, setConversationId] = useState(null)
   const [maintenance, setMaintenance] = useState([])
   const [complaints, setComplaints] = useState([])
   const [suggestions, setSuggestions] = useState([])
+  const [payments, setPayments] = useState([])
+
+
 
   useEffect(() => {
     async function loadUnitData() {
@@ -30,6 +36,29 @@ export default function UnitDetails() {
         .single()
 
       setUnit(unitData)
+
+      const { data: conversationData } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('unit_id', id)
+        .maybeSingle()
+
+      setConversationId(conversationData?.id)
+
+      const { data: paymentsData, error: paymentsError } = await supabase
+
+        .from('payments')
+        .select('*')
+        .eq('unit_id', id)
+        .order('created_at', { ascending: false })
+
+      console.log('Payments:', paymentsData)
+      console.log('Payments error:', paymentsError)
+
+      setPayments(paymentsData || [])
+
+
+
 
       const { data: maintenanceData } = await supabase
         .from('maintenance_requests')
@@ -79,14 +108,55 @@ export default function UnitDetails() {
             <p>Name: {unit.profiles.full_name}</p>
             <p>Email: {unit.profiles.email}</p>
             <p>Phone: {unit.profiles.phone || 'No phone number'}</p>
+
+            {conversationId && (
+              <button
+                onClick={() => navigate(`/messages/${conversationId}`)}
+                className="btn-primary mt-4"
+              >
+                View conversation
+              </button>
+            )}
           </>
         ) : (
           <p>This unit is vacant.</p>
         )}
       </div>
 
+
+      <div className="estate-card p-5 mt-6">
+        <h2 className="font-semibold mb-3">Payment history</h2>
+
+        {payments.length === 0 ? (
+          <p>No payments found.</p>
+        ) : (
+          payments.map((payment) => (
+            <div key={payment.id} className="mb-3 border-b pb-2">
+              <p>
+                {payment.month}/{payment.year}
+              </p>
+
+              <p className="text-sm text-ink-soft">
+                Rent: KES {payment.rent_amount}
+              </p>
+
+              <p className="text-sm text-ink-soft">
+                Paid: KES {payment.amount_paid}
+              </p>
+
+              <p className="text-sm text-ink-soft">
+                Balance: KES {payment.balance}
+              </p>
+
+              <p className="text-xs">Status: {payment.status}</p>
+            </div>
+          ))
+        )}
+      </div>
+
       <div className="estate-card p-5 mt-6">
         <h2 className="font-semibold mb-3">Maintenance requests</h2>
+
 
         {maintenance.length === 0 ? (
           <p>No maintenance requests.</p>

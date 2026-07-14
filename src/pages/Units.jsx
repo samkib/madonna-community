@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Building2, Plus, UserMinus, UserPlus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import Loader from '../components/Loader'
@@ -9,6 +9,9 @@ import UnitPlaque from '../components/UnitPlaque'
 
 export default function Units() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const paymentFilter = searchParams.get('payment')
+
   const [loading, setLoading] = useState(true)
   const [units, setUnits] = useState([])
   const [search, setSearch] = useState('')
@@ -31,8 +34,22 @@ export default function Units() {
     setLoading(true)
     const { data, error } = await supabase
       .from('units')
-      .select('*, profiles:resident_id(full_name, email, phone)')
+      .select(`
+        *,
+        profiles:resident_id (
+          full_name,
+          email,
+          phone
+        ),
+        payments (
+          id,
+          status,
+          month,
+          year
+        )
+      `)
       .order('unit_number', { ascending: true })
+
     if (!error) setUnits(data || [])
     setLoading(false)
   }
@@ -107,13 +124,33 @@ export default function Units() {
   }
 
   const filtered = units.filter((u) => {
-    const matchesStatus = statusFilter === 'All' || u.status === statusFilter
+    const matchesStatus =
+      statusFilter === 'All' || u.status === statusFilter
+
     const matchesSearch =
       !search ||
       u.unit_number?.toLowerCase().includes(search.toLowerCase()) ||
       u.profiles?.full_name?.toLowerCase().includes(search.toLowerCase())
-    return matchesStatus && matchesSearch
+
+    let matchesPayment = true
+
+    const latestPayment = u.payments?.[0]
+
+    if (paymentFilter === 'paid') {
+      matchesPayment = latestPayment?.status === 'paid'
+    }
+
+    if (paymentFilter === 'unpaid') {
+      matchesPayment =
+        latestPayment?.status === 'unpaid' ||
+        latestPayment?.status === 'pending' ||
+        latestPayment?.status === 'partial'
+    }
+
+
+    return matchesStatus && matchesSearch && matchesPayment
   })
+
 
   return (
     <div className="space-y-6 animate-fade-up">

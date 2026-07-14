@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   Megaphone,
+  Wallet,
   Pin,
   Wrench,
   MessageSquareWarning,
@@ -14,14 +15,68 @@ import { useAuth } from '../context/AuthContext'
 import UnitPlaque from './UnitPlaque'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
-  { to: '/announcements', label: 'Announcements', icon: Megaphone, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
-  { to: '/notice-board', label: 'Notice Board', icon: Pin, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
-  { to: '/maintenance/request', label: 'Maintenance/request', icon: Wrench, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
-  { to: '/complaints', label: 'Complaints', icon: MessageSquareWarning, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
-  { to: '/suggestions', label: 'Suggestions', icon: Lightbulb, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
-  { to: '/units', label: 'Units & Residents', icon: Building2, roles: ['chairperson', 'landlady'] },
-  { to: '/settings', label: 'Settings', icon: Settings, roles: ['resident', 'caretaker', 'chairperson', 'landlady'] },
+  {
+    to: '/',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/announcements',
+    label: 'Announcements',
+    icon: Megaphone,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/payments',
+    label: 'Payments',
+    icon: Wallet,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/maintenance/request',
+    label: 'Maintenance/request',
+    icon: Wrench,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/notice-board',
+    label: 'Notice Board',
+    icon: Pin,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/complaints',
+    label: 'Complaints',
+    icon: MessageSquareWarning,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/suggestions',
+    label: 'Suggestions',
+    icon: Lightbulb,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/settings',
+    label: 'Settings',
+    icon: Settings,
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
+  },
+
+  {
+    to: '/units',
+    label: 'Units & Residents',
+    icon: Building2,
+    roles: ['chairperson', 'landlady'],
+  },
 ]
 
 export default function Sidebar({ mobileOpen, onClose }) {

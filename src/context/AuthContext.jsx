@@ -112,8 +112,22 @@ export function AuthProvider({ children }) {
     signIn,
     signOut,
     refreshProfile,
-    isStaff: profile?.role === 'caretaker' || profile?.role === 'chairperson' || profile?.role === 'landlady',
-    canManageUnits: profile?.role === 'chairperson' || profile?.role === 'landlady',
+
+    isStaff:
+      profile?.role === 'caretaker' ||
+      profile?.role === 'chairperson' ||
+      profile?.role === 'landlady',
+
+    canManageUnits:
+      profile?.role === 'chairperson' ||
+      profile?.role === 'landlady' ||
+      profile?.role === 'caretaker',
+
+    canManagePayments:
+      profile?.role === 'chairperson' ||
+      profile?.role === 'landlady',
+
+    canManageMessages: !!profile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
