@@ -35,7 +35,7 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/announcements" element={<Announcements />} />
               <Route path="/notice-board" element={<NoticeBoard />} />
-              <Route path="/maintenance" element={<MaintenanceRequests />} />
+              <Route path="/maintenance/request" element={<MaintenanceRequests />} />
               <Route path="/complaints" element={<Complaints />} />
               <Route path="/suggestions" element={<Suggestions />} />
               <Route
