@@ -22,16 +22,16 @@ export default function Modal({ open, onClose, title, children, footer }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-lg modal-panel rounded-card shadow-card dark:shadow-card-dark animate-fade-up">
-        <div className="estate-card-header">
+      <div className="relative w-full max-w-lg modal-panel rounded-card shadow-card dark:shadow-card-dark animate-fade-up max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="estate-card-header shrink-0">
           <h3 className="font-display text-lg text-ink">{title}</h3>
           <button onClick={onClose} className="btn-ghost p-1.5" aria-label="Close">
             <X size={18} />
           </button>
         </div>
-        <div className="px-5 sm:px-6 py-5 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-5 sm:px-6 py-5 overflow-y-auto">{children}</div>
         {footer ? (
-          <div className="px-5 sm:px-6 py-4 border-t border-line flex justify-end gap-2">{footer}</div>
+          <div className="px-5 sm:px-6 py-4 border-t border-line flex justify-end gap-2 shrink-0">{footer}</div>
         ) : null}
       </div>
     </div>
