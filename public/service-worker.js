@@ -1,8 +1,11 @@
 // Minimal service worker: caches the app shell so the UI still loads
 // (offline / flaky connection) even though live Supabase data obviously
 // still needs a network connection to actually fetch or submit anything.
-const CACHE_NAME = 'madonna-community-shell-v1'
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png']
+//
+// Bump CACHE_NAME any time this file changes meaningfully — it's what
+// makes `activate` clean out the previous version's cached files.
+const CACHE_NAME = 'madonna-community-shell-v2'
+const SHELL_ASSETS = ['/manifest.json', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -29,10 +32,22 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Navigation requests (loading the page itself, i.e. index.html) must
+  // always check the network first. Every deploy renames the JS/CSS
+  // files, so a cached index.html can end up pointing at files that no
+  // longer exist. Only fall back to a cached copy if there's truly no
+  // connection at all.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    )
+    return
+  }
+
+  // Everything else (hashed JS/CSS/images) is safe to cache-first —
+  // their filenames change every build, so a cached one is never stale.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request)
-    })
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
   )
 })
 
