@@ -14,10 +14,9 @@ export default function Payments() {
   const [amountPaid, setAmountPaid] = useState('')
   const [mpesaMessage, setMpesaMessage] = useState('')
 
-  const [discussionOpen, setDiscussionOpen] = useState(false)
-  const [selectedPayment, setSelectedPayment] = useState(null)
-  const [messages, setMessages] = useState([])
-  const [newMessage, setNewMessage] = useState('')
+
+
+
 
   const [payments, setPayments] = useState([])
   const [unreadCounts, setUnreadCounts] = useState({})
@@ -176,7 +175,44 @@ export default function Payments() {
 
   return (
     <div className="space-y-6 animate-fade-up">
-      <h1 className="font-display text-3xl">Payments</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-3xl">Payments</h1>
+
+        <button
+          className="btn-secondary relative"
+          onClick={() => {
+            if (isStaff) {
+              navigate('/messages')
+            } else {
+              const latestConversation = payments.find(
+                (payment) => payment.conversation_id
+              )
+
+              if (latestConversation) {
+                navigate(
+                  `/messages/${latestConversation.conversation_id}`
+                )
+              } else {
+                alert('No discussions yet.')
+              }
+            }
+          }}
+        >
+          View discussions
+
+          {Object.values(unreadCounts).reduce(
+            (total, count) => total + count,
+            0
+          ) > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-2 py-1">
+              {Object.values(unreadCounts).reduce(
+                (total, count) => total + count,
+                0
+              )}
+            </span>
+          )}
+        </button>
+      </div>
 
       {payments.length === 0 ? (
         <p>No payment records found.</p>
@@ -249,36 +285,13 @@ export default function Payments() {
               </div>
             )}
 
-            <div className="mt-4">
-              <div className="relative">
-                <button
-                  className="btn-secondary"
-                  onClick={() => {
-                    if (payment.conversation_id) {
-                      navigate(`/messages/${payment.conversation_id}`)
-                    }
-                  }}
-                >
-                  View discussion
-                </button>
-
-                {unreadCounts[payment.id] > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-2 py-1">
-                    {unreadCounts[payment.id]}
-                  </span>
-                )}
-              </div>
-            </div>
-
-
-
-            {isStaff && payment.status === 'pending' && (
-              <div className="mt-4 flex gap-3">
+            {isStaff && (
+              <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   onClick={() => approvePayment(payment.id)}
                   className="btn-primary"
                 >
-                  Approve
+                  Mark as paid
                 </button>
 
                 <button
@@ -287,37 +300,32 @@ export default function Payments() {
                 >
                   Reject
                 </button>
+
+                <button
+                  onClick={async () => {
+                    await supabase
+                      .from('payments')
+                      .update({
+                        status: 'pending',
+                        verified_by: null,
+                        verified_at: null,
+                      })
+                      .eq('id', payment.id)
+
+                    await loadPayments()
+                  }}
+                  className="btn-secondary"
+                >
+                  Set pending
+                </button>
               </div>
             )}
+
           </div>
         ))
       )}
 
-      {discussionOpen && (
-        <div className="estate-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Payment discussion</h2>
 
-            <button
-              onClick={() => setDiscussionOpen(false)}
-              className="btn-secondary"
-            >
-              Close
-            </button>
-          </div>
-
-          {messages.length === 0 ? (
-            <p>No messages yet.</p>
-          ) : (
-            messages.map((msg) => (
-              <div key={msg.id} className="mb-4 border-b pb-2">
-                <p className="font-medium">{msg.profiles?.full_name}</p>
-                <p className="text-sm text-ink-soft">{msg.message}</p>
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   )
 }

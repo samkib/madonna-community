@@ -17,6 +17,7 @@ import UnitDetails from './pages/UnitDetails'
 import Settings from './pages/Settings'
 import Payments from './pages/Payments'
 import Messages from './pages/Messages'
+import Conversations from './pages/Conversations'
 
 
 export default function App() {
@@ -61,6 +62,17 @@ export default function App() {
               <Route
                 path="/payments"
                 element={<Payments />}
+              />
+
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={['caretaker', 'chairperson', 'landlady']}
+                  >
+                    <Conversations />
+                  </ProtectedRoute>
+                }
               />
 
               <Route

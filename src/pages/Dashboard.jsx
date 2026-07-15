@@ -42,6 +42,97 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [announcements, setAnnouncements] = useState([])
   const [myRequests, setMyRequests] = useState([])
+  const [generatedPayments, setGeneratedPayments] = useState([])
+  const [generateMonth, setGenerateMonth] = useState('')
+  const [generateYear, setGenerateYear] = useState('')
+
+  async function generateRecords() {
+    if (!generateMonth || !generateYear) {
+      alert('Enter month and year')
+      return
+    }
+
+    const { data: units, error: unitsError } = await supabase
+      .from('units')
+      .select(`
+        id,
+        resident_id,
+        rent_amount
+      `)
+      .eq('status', 'occupied')
+
+    if (unitsError) {
+      alert(unitsError.message)
+      return
+    }
+
+    const records = []
+
+    for (const unit of units) {
+      const { data: existing } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('unit_id', unit.id)
+        .eq('month', generateMonth)
+        .eq('year', generateYear)
+        .maybeSingle()
+
+      if (existing) {
+        continue
+      }
+
+      records.push({
+        unit_id: unit.id,
+        resident_id: unit.resident_id,
+        month: Number(generateMonth),
+        year: Number(generateYear),
+        rent_amount: unit.rent_amount,
+        amount_paid: 0,
+        balance: unit.rent_amount,
+        status: 'pending'
+      })
+    }
+
+    if (records.length === 0) {
+      const { data } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          units(unit_number),
+          profiles:resident_id(full_name)
+        `)
+        .eq('month', generateMonth)
+        .eq('year', generateYear)
+
+      setGeneratedPayments(data || [])
+
+      alert('All payment records already exist.')
+      return
+    }
+
+    const { error } = await supabase
+      .from('payments')
+      .insert(records)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    const { data } = await supabase
+      .from('payments')
+      .select(`
+        *,
+        units(unit_number),
+        profiles:resident_id(full_name)
+      `)
+      .eq('month', generateMonth)
+      .eq('year', generateYear)
+
+    setGeneratedPayments(data || [])
+
+    alert(`${records.length} payment records generated successfully.`)
+  }
 
   useEffect(() => {
     let active = true
@@ -65,7 +156,6 @@ export default function Dashboard() {
           pendingComplaints,
           totalSuggestions,
           unitsData,
-          paymentsData
         ] = await Promise.all([
           supabase
             .from('maintenance_requests')
@@ -82,10 +172,6 @@ export default function Dashboard() {
           supabase
             .from('units')
             .select('status'),
-
-          supabase
-            .from('payments')
-            .select('unit_id, status'),
         ])
 
         const occupied = (unitsData.data || []).filter(
@@ -96,26 +182,6 @@ export default function Dashboard() {
           (u) => u.status === 'vacant'
         ).length
 
-        const paidUnitIds = new Set(
-          (paymentsData.data || [])
-            .filter((p) => p.status === 'paid')
-            .map((p) => p.unit_id)
-        )
-
-        const unpaidUnitIds = new Set(
-          (paymentsData.data || [])
-            .filter(
-              (p) =>
-                p.status === 'unpaid' ||
-                p.status === 'partial' ||
-                p.status === 'pending'
-            )
-            .map((p) => p.unit_id)
-        )
-
-        const paid = paidUnitIds.size
-        const unpaid = unpaidUnitIds.size
-
         if (!active) return
         setStats({
           pendingMaintenance: pendingMaintenance.count ?? 0,
@@ -123,8 +189,6 @@ export default function Dashboard() {
           totalSuggestions: totalSuggestions.count ?? 0,
           occupied,
           vacant,
-          paid,
-          unpaid,
         })
       } else {
         const { data: requests } = await supabase
@@ -155,23 +219,83 @@ export default function Dashboard() {
       </div>
 
       {isStaff ? (
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-          <StatCard icon={Wrench} label="Pending maintenance" value={stats.pendingMaintenance} to="/maintenance" />
-          <StatCard icon={MessageSquareWarning} label="Pending complaints" value={stats.pendingComplaints} to="/complaints" />
-          <StatCard icon={Lightbulb} label="Suggestions" value={stats.totalSuggestions} to="/suggestions" />
-          <StatCard icon={Building2} label="Occupied / Vacant" value={`${stats.occupied} / ${stats.vacant}`} to="/units" />
-          <StatCard
-            icon={Home}
-            label="Paid units"
-            value={stats.paid}
-            to="/units?payment=paid"
-          />
-          <StatCard
-            icon={Home}
-            label="Unpaid units"
-            value={stats.unpaid}
-            to="/units?payment=unpaid"
-          />
+        <div>
+          <div className="estate-card p-5 mb-6">
+            <h3 className="font-display text-lg text-ink mb-4">
+              Generate rent records
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="number"
+                placeholder="Generate month"
+                className="input-field"
+                value={generateMonth}
+                onChange={(e) => setGenerateMonth(e.target.value)}
+              />
+
+              <input
+                type="number"
+                placeholder="Generate year"
+                className="input-field"
+                value={generateYear}
+                onChange={(e) => setGenerateYear(e.target.value)}
+              />
+            </div>
+
+            <button onClick={generateRecords} className="btn-primary mt-4">
+              Generate records
+            </button>
+
+            {generatedPayments.length > 0 && (
+              <div className="estate-card p-5 mt-6">
+                <h3 className="font-semibold mb-4">
+                  Rent records for {generateMonth}/{generateYear}
+                </h3>
+
+                {generatedPayments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="border-b py-3"
+                  >
+                    <p>Unit: {payment.units?.unit_number}</p>
+
+                    <p>
+                      Resident: {payment.profiles?.full_name}
+                    </p>
+
+                    <p>
+                      Rent: KES {payment.rent_amount}
+                    </p>
+
+                    <p>
+                      Paid: KES {payment.amount_paid}
+                    </p>
+
+                    <p>
+                      Balance: KES {payment.balance}
+                    </p>
+
+                    <p>
+                      Status: {payment.status}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              icon={Wrench}
+              label="Pending maintenance"
+              value={stats.pendingMaintenance}
+              to="/maintenance/request"
+            />
+            <StatCard icon={MessageSquareWarning} label="Pending complaints" value={stats.pendingComplaints} to="/complaints" />
+            <StatCard icon={Lightbulb} label="Suggestions" value={stats.totalSuggestions} to="/suggestions" />
+            <StatCard icon={Building2} label="Occupied / Vacant" value={`${stats.occupied} / ${stats.vacant}`} to="/units" />
+          </div>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
@@ -185,7 +309,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Link to="/maintenance" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform">
+            <Link to="/maintenance/request" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform">
               <Wrench size={18} className="text-primary" />
               <span className="text-xs font-medium text-ink-soft">Maintenance</span>
             </Link>
@@ -234,7 +358,7 @@ export default function Dashboard() {
               <h3 className="font-display text-lg text-ink flex items-center gap-2">
                 <Wrench size={17} className="text-accent" /> Your recent requests
               </h3>
-              <Link to="/maintenance" className="text-xs text-ink-soft hover:text-accent flex items-center gap-1">
+              <Link to="/maintenance/request" className="text-xs text-ink-soft hover:text-accent flex items-center gap-1">
                 View all <ArrowUpRight size={12} />
               </Link>
             </div>
