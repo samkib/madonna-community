@@ -10,6 +10,8 @@ export default function Payments() {
   const navigate = useNavigate()
 
   const [editingPayment, setEditingPayment] = useState(null)
+  const [searchUnit, setSearchUnit] = useState('')
+
 
   const [amountPaid, setAmountPaid] = useState('')
   const [mpesaMessage, setMpesaMessage] = useState('')
@@ -61,6 +63,8 @@ export default function Payments() {
         })
         .eq('conversation_id', payment.conversation_id)
         .eq('is_read', false)
+        .neq('sender_id', user.id)
+
 
       counts[payment.id] = count || 0
     }
@@ -78,6 +82,11 @@ export default function Payments() {
 
 
   async function submitPayment(payment) {
+    if (!amountPaid || !mpesaMessage.trim()) {
+      alert('Please enter the amount and M-Pesa message.')
+      return
+    }
+
     try {
       let conversationId = payment.conversation_id
 
@@ -93,8 +102,12 @@ export default function Payments() {
             .select()
             .single()
 
+        console.log('Conversation:', conversation)
+        console.log('Error:', conversationError)
+
         if (conversationError) {
-          throw conversationError
+          alert(conversationError.message)
+          return
         }
 
         conversationId = conversation.id
@@ -178,6 +191,15 @@ export default function Payments() {
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Payments</h1>
 
+        {isStaff && (
+          <input
+            className="input-field"
+            placeholder="Search unit e.g A208"
+            value={searchUnit}
+            onChange={(e) => setSearchUnit(e.target.value)}
+          />
+        )}
+
         <button
           className="btn-secondary relative"
           onClick={() => {
@@ -217,13 +239,21 @@ export default function Payments() {
       {payments.length === 0 ? (
         <p>No payment records found.</p>
       ) : (
-        payments.map((payment) => (
-          <div key={payment.id} className="estate-card p-5">
-            {isStaff && (
-              <p className="font-medium">
-                Resident: {payment.profiles?.full_name}
-              </p>
-            )}
+        payments
+          .filter((payment) => {
+            if (!searchUnit) return true
+
+            return payment.units?.unit_number
+              ?.toLowerCase()
+              .includes(searchUnit.toLowerCase())
+          })
+          .map((payment) => (
+            <div key={payment.id} className="estate-card p-5">
+              {isStaff && (
+                <p className="font-medium">
+                  Resident: {payment.profiles?.full_name}
+                </p>
+              )}
 
             <p>Unit: {payment.units?.unit_number}</p>
 
@@ -255,6 +285,7 @@ export default function Payments() {
 
             {!isStaff && (
               <div className="mt-4 space-y-3">
+
                 <input
                   type="number"
                   placeholder="Amount paid"

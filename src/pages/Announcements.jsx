@@ -100,7 +100,9 @@ export default function Announcements() {
         title: announcement.title,
         message: announcement.message,
         category: announcement.category,
+        created_by: user.id,
       })
+
 
     if (error) {
       alert(error.message)

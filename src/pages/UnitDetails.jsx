@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import Loader from '../components/Loader'
+import { useAuth } from '../context/AuthContext'
 
 export default function UnitDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
-
+  const { isStaff } = useAuth()
 
   const [loading, setLoading] = useState(true)
+
   const [unit, setUnit] = useState(null)
   const [conversationId, setConversationId] = useState(null)
   const [maintenance, setMaintenance] = useState([])
@@ -19,10 +21,15 @@ export default function UnitDetails() {
 
 
   useEffect(() => {
+    if (!isStaff) {
+      navigate('/dashboard')
+      return
+    }
+
     async function loadUnitData() {
       setLoading(true)
 
-      const { data: unitData } = await supabase
+      const { data: unitData, error: unitError } = await supabase
         .from('units')
         .select(`
           *,
@@ -35,60 +42,90 @@ export default function UnitDetails() {
         .eq('id', id)
         .single()
 
+      if (unitError) {
+        console.error('Failed to load unit:', unitError)
+        // Helpful for debugging in console
+        console.error('unitError.message:', unitError.message)
+        console.error('unitError.details:', unitError.details)
+        console.error('unitError.hint:', unitError.hint)
+        setLoading(false)
+        return
+      }
+
       setUnit(unitData)
 
-      const { data: conversationData } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('unit_id', id)
-        .maybeSingle()
+      const { data: conversationData, error: conversationError } =
+        await supabase
+          .from('conversations')
+          .select('id')
+          .eq('unit_id', id)
+          .maybeSingle()
 
-      setConversationId(conversationData?.id)
+      if (conversationError) {
+        console.error('Failed to load conversation:', conversationError)
+      } else {
+        setConversationId(conversationData?.id)
+      }
 
-      const { data: paymentsData, error: paymentsError } = await supabase
+      const [
+        { data: paymentsData, error: paymentsError },
+        { data: maintenanceData, error: maintenanceError },
+        { data: complaintsData, error: complaintsError },
+        { data: suggestionsData, error: suggestionsError },
+      ] = await Promise.all([
+        supabase
+          .from('payments')
+          .select('id, month, year, rent_amount, amount_paid, balance, status')
+          .eq('unit_id', id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('maintenance_requests')
+          .select('id, category, description, status')
+          .eq('unit_id', id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('complaints')
+          .select('id, subject')
+          .eq('unit_id', id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('suggestions')
+          .select('id, message')
+          .eq('unit_id', id)
+          .order('created_at', { ascending: false }),
+      ])
 
-        .from('payments')
-        .select('*')
-        .eq('unit_id', id)
-        .order('created_at', { ascending: false })
+      if (paymentsError) {
+        console.error('Failed to load payments:', paymentsError)
+      } else {
+        setPayments(paymentsData || [])
+      }
 
-      console.log('Payments:', paymentsData)
-      console.log('Payments error:', paymentsError)
+      if (maintenanceError) {
+        console.error('Failed to load maintenance requests:', maintenanceError)
+      } else {
+        setMaintenance(maintenanceData || [])
+      }
 
-      setPayments(paymentsData || [])
+      if (complaintsError) {
+        console.error('Failed to load complaints:', complaintsError)
+      } else {
+        setComplaints(complaintsData || [])
+      }
 
+      if (suggestionsError) {
+        console.error('Failed to load suggestions:', suggestionsError)
+      } else {
+        setSuggestions(suggestionsData || [])
+      }
 
-
-
-      const { data: maintenanceData } = await supabase
-        .from('maintenance_requests')
-        .select('*')
-        .eq('unit_id', id)
-        .order('created_at', { ascending: false })
-
-      setMaintenance(maintenanceData || [])
-
-      const { data: complaintsData } = await supabase
-        .from('complaints')
-        .select('*')
-        .eq('unit_id', id)
-        .order('created_at', { ascending: false })
-
-      setComplaints(complaintsData || [])
-
-      const { data: suggestionsData } = await supabase
-        .from('suggestions')
-        .select('*')
-        .eq('unit_id', id)
-        .order('created_at', { ascending: false })
-
-      setSuggestions(suggestionsData || [])
 
       setLoading(false)
     }
 
     loadUnitData()
-  }, [id])
+  }, [id, isStaff, navigate])
+
 
   if (loading) return <Loader />
 

@@ -54,7 +54,14 @@ export function AuthProvider({ children }) {
       .eq('resident_id', userId)
       .maybeSingle()
 
+    if (unitError) {
+      console.error('Failed to load unit:', unitError.message)
+      console.error('unitError.details:', unitError.details)
+      console.error('unitError.hint:', unitError.hint)
+    }
+
     setUnit(unitRow || null)
+
   }, [])
 
   useEffect(() => {

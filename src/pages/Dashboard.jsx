@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext'
 import Loader from '../components/Loader'
 import EmptyState from '../components/EmptyState'
 import StatusBadge, { UrgentBadge } from '../components/StatusBadge'
+import estateBuilding from '../assets/ground.jpeg'
 
 function StatCard({ icon: Icon, label, value, to, tone = 'primary' }) {
   return (
@@ -212,181 +213,193 @@ export default function Dashboard() {
   if (loading) return <Loader label="Loading your dashboard…" />
 
   return (
-    <div className="space-y-8 animate-fade-up">
-      <div>
-        <p className="text-ink-soft text-sm">Welcome back,</p>
-        <h2 className="font-display text-2xl sm:text-3xl text-ink">{user?.name}</h2>
-      </div>
+    <div className="relative rounded-plaque overflow-hidden -m-4 sm:-m-6">
+      {/* Background photo */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${estateBuilding})` }}
+      />
+      {/* Dark overlay so text/cards stay readable over the photo */}
+      <div className="absolute inset-0 bg-black/65" />
 
-      {isStaff ? (
+      {/* Actual dashboard content, sits above the photo + overlay */}
+      <div className="relative space-y-8 animate-fade-up p-4 sm:p-6">
         <div>
-          <div className="estate-card p-5 mb-6">
-            <h3 className="font-display text-lg text-ink mb-4">
-              Generate rent records
-            </h3>
+          <p className="text-white/70 text-sm">Welcome back,</p>
+          <h2 className="font-display text-2xl sm:text-3xl text-white">{user?.name}</h2>
+        </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="number"
-                placeholder="Generate month"
-                className="input-field"
-                value={generateMonth}
-                onChange={(e) => setGenerateMonth(e.target.value)}
-              />
+        {isStaff ? (
+          <div>
+            <div className="estate-card p-5 mb-6 backdrop-blur-sm bg-surface/90">
+              <h3 className="font-display text-lg text-ink mb-4">
+                Generate rent records
+              </h3>
 
-              <input
-                type="number"
-                placeholder="Generate year"
-                className="input-field"
-                value={generateYear}
-                onChange={(e) => setGenerateYear(e.target.value)}
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  placeholder="Generate month"
+                  className="input-field"
+                  value={generateMonth}
+                  onChange={(e) => setGenerateMonth(e.target.value)}
+                />
 
-            <button onClick={generateRecords} className="btn-primary mt-4">
-              Generate records
-            </button>
-
-            {generatedPayments.length > 0 && (
-              <div className="estate-card p-5 mt-6">
-                <h3 className="font-semibold mb-4">
-                  Rent records for {generateMonth}/{generateYear}
-                </h3>
-
-                {generatedPayments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="border-b py-3"
-                  >
-                    <p>Unit: {payment.units?.unit_number}</p>
-
-                    <p>
-                      Resident: {payment.profiles?.full_name}
-                    </p>
-
-                    <p>
-                      Rent: KES {payment.rent_amount}
-                    </p>
-
-                    <p>
-                      Paid: KES {payment.amount_paid}
-                    </p>
-
-                    <p>
-                      Balance: KES {payment.balance}
-                    </p>
-
-                    <p>
-                      Status: {payment.status}
-                    </p>
-                  </div>
-                ))}
+                <input
+                  type="number"
+                  placeholder="Generate year"
+                  className="input-field"
+                  value={generateYear}
+                  onChange={(e) => setGenerateYear(e.target.value)}
+                />
               </div>
-            )}
-          </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={Wrench}
-              label="Pending maintenance"
-              value={stats.pendingMaintenance}
-              to="/maintenance/request"
-            />
-            <StatCard icon={MessageSquareWarning} label="Pending complaints" value={stats.pendingComplaints} to="/complaints" />
-            <StatCard icon={Lightbulb} label="Suggestions" value={stats.totalSuggestions} to="/suggestions" />
-            <StatCard icon={Building2} label="Occupied / Vacant" value={`${stats.occupied} / ${stats.vacant}`} to="/units" />
-          </div>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="estate-card p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-plaque bg-primary text-accent-soft flex items-center justify-center shrink-0">
-              <Home size={18} />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-ink-soft">Your unit</p>
-              <p className="font-display text-xl text-ink">{unit?.unit_number || 'Not yet assigned'}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Link to="/maintenance/request" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform">
-              <Wrench size={18} className="text-primary" />
-              <span className="text-xs font-medium text-ink-soft">Maintenance</span>
-            </Link>
-            <Link to="/complaints" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform">
-              <MessageSquareWarning size={18} className="text-primary" />
-              <span className="text-xs font-medium text-ink-soft">Complaint</span>
-            </Link>
-            <Link to="/suggestions" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform">
-              <Lightbulb size={18} className="text-primary" />
-              <span className="text-xs font-medium text-ink-soft">Suggest</span>
-            </Link>
-          </div>
-        </div>
-      )}
+              <button onClick={generateRecords} className="btn-primary mt-4">
+                Generate records
+              </button>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="estate-card">
-          <div className="estate-card-header">
-            <h3 className="font-display text-lg text-ink flex items-center gap-2">
-              <Megaphone size={17} className="text-accent" /> Latest announcements
-            </h3>
-            <Link to="/announcements" className="text-xs text-ink-soft hover:text-accent flex items-center gap-1">
-              View all <ArrowUpRight size={12} />
-            </Link>
-          </div>
-          <div className="p-5 space-y-4">
-            {announcements.length === 0 ? (
-              <EmptyState icon={Megaphone} title="No announcements available." />
-            ) : (
-              announcements.map((a) => (
-                <div key={a.id} className="pb-4 border-b border-line last:border-0 last:pb-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <p className="font-medium text-ink text-sm">{a.title}</p>
-                    {a.is_urgent ? <UrgentBadge /> : null}
-                  </div>
-                  <p className="text-sm text-ink-soft line-clamp-2">{a.message}</p>
+              {generatedPayments.length > 0 && (
+                <div className="estate-card p-5 mt-6">
+                  <h3 className="font-semibold mb-4">
+                    Rent records for {generateMonth}/{generateYear}
+                  </h3>
+
+                  {generatedPayments.map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="border-b py-3"
+                    >
+                      <p>Unit: {payment.units?.unit_number}</p>
+
+                      <p>
+                        Resident: {payment.profiles?.full_name}
+                      </p>
+
+                      <p>
+                        Rent: KES {payment.rent_amount}
+                      </p>
+
+                      <p>
+                        Paid: KES {payment.amount_paid}
+                      </p>
+
+                      <p>
+                        Balance: KES {payment.balance}
+                      </p>
+
+                      <p>
+                        Status: {payment.status}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              )}
+            </div>
 
-        {!isStaff ? (
-          <div className="estate-card">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                icon={Wrench}
+                label="Pending maintenance"
+                value={stats.pendingMaintenance}
+                to="/maintenance/request"
+              />
+              <StatCard icon={MessageSquareWarning} label="Pending complaints" value={stats.pendingComplaints} to="/complaints" />
+              <StatCard icon={Lightbulb} label="Suggestions" value={stats.totalSuggestions} to="/suggestions" />
+              <StatCard icon={Building2} label="Occupied / Vacant" value={`${stats.occupied} / ${stats.vacant}`} to="/units" />
+            </div>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="estate-card p-5 flex items-center gap-4 backdrop-blur-sm bg-surface/90">
+              <div className="w-11 h-11 rounded-plaque bg-primary text-accent-soft flex items-center justify-center shrink-0">
+                <Home size={18} />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-ink-soft">Your unit</p>
+                <p className="font-display text-xl text-ink">{unit?.unit_number || 'Not yet assigned'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Link to="/maintenance/request" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform backdrop-blur-sm bg-surface/90">
+                <Wrench size={18} className="text-primary" />
+                <span className="text-xs font-medium text-ink-soft">Maintenance</span>
+              </Link>
+              <Link to="/complaints" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform backdrop-blur-sm bg-surface/90">
+                <MessageSquareWarning size={18} className="text-primary" />
+                <span className="text-xs font-medium text-ink-soft">Complaint</span>
+              </Link>
+              <Link to="/suggestions" className="estate-card p-4 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 transition-transform backdrop-blur-sm bg-surface/90">
+                <Lightbulb size={18} className="text-primary" />
+                <span className="text-xs font-medium text-ink-soft">Suggest</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="estate-card backdrop-blur-sm bg-surface/90">
             <div className="estate-card-header">
               <h3 className="font-display text-lg text-ink flex items-center gap-2">
-                <Wrench size={17} className="text-accent" /> Your recent requests
+                <Megaphone size={17} className="text-accent" /> Latest announcements
               </h3>
-              <Link to="/maintenance/request" className="text-xs text-ink-soft hover:text-accent flex items-center gap-1">
+              <Link to="/announcements" className="text-xs text-ink-soft hover:text-accent flex items-center gap-1">
                 View all <ArrowUpRight size={12} />
               </Link>
             </div>
             <div className="p-5 space-y-4">
-              {myRequests.length === 0 ? (
-                <EmptyState icon={Wrench} title="No maintenance requests yet." />
+              {announcements.length === 0 ? (
+                <EmptyState icon={Megaphone} title="No announcements available." />
               ) : (
-                myRequests.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between pb-4 border-b border-line last:border-0 last:pb-0">
-                    <div>
-                      <p className="font-medium text-ink text-sm">{r.category}</p>
-                      <p className="text-xs text-ink-soft line-clamp-1">{r.description}</p>
+                announcements.map((a) => (
+                  <div key={a.id} className="pb-4 border-b border-line last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <p className="font-medium text-ink text-sm">{a.title}</p>
+                      {a.is_urgent ? <UrgentBadge /> : null}
                     </div>
-                    <StatusBadge status={r.status} />
+                    <p className="text-sm text-ink-soft line-clamp-2">{a.message}</p>
                   </div>
                 ))
               )}
             </div>
           </div>
-        ) : (
-          <div className="estate-card p-5">
-            <h3 className="font-display text-lg text-ink mb-3">Signed in as</h3>
-            <p className="text-sm text-ink-soft capitalize">
-              {role} · {user?.email}
-            </p>
-          </div>
-        )}
+
+          {!isStaff ? (
+            <div className="estate-card backdrop-blur-sm bg-surface/90">
+              <div className="estate-card-header">
+                <h3 className="font-display text-lg text-ink flex items-center gap-2">
+                  <Wrench size={17} className="text-accent" /> Your recent requests
+                </h3>
+                <Link to="/maintenance/request" className="text-xs text-ink-soft hover:text-accent flex items-center gap-1">
+                  View all <ArrowUpRight size={12} />
+                </Link>
+              </div>
+              <div className="p-5 space-y-4">
+                {myRequests.length === 0 ? (
+                  <EmptyState icon={Wrench} title="No maintenance requests yet." />
+                ) : (
+                  myRequests.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between pb-4 border-b border-line last:border-0 last:pb-0">
+                      <div>
+                        <p className="font-medium text-ink text-sm">{r.category}</p>
+                        <p className="text-xs text-ink-soft line-clamp-1">{r.description}</p>
+                      </div>
+                      <StatusBadge status={r.status} />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="estate-card p-5 backdrop-blur-sm bg-surface/90">
+              <h3 className="font-display text-lg text-ink mb-3">Signed in as</h3>
+              <p className="text-sm text-ink-soft capitalize">
+                {role} · {user?.email}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
+

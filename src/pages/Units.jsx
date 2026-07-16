@@ -24,7 +24,7 @@ export default function Units() {
 
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignUnit, setAssignUnit] = useState(null)
-  const [assignForm, setAssignForm] = useState({ full_name: '', email: '', phone: '', password: '' })
+  const [assignForm, setAssignForm] = useState({ full_name: '', email: '', phone: '', password: '', rent_amount: '' })
   const [assignError, setAssignError] = useState('')
   const [assignSubmitting, setAssignSubmitting] = useState(false)
 
@@ -45,7 +45,8 @@ export default function Units() {
           id,
           status,
           month,
-          year
+          year,
+          created_at
         )
       `)
       .order('unit_number', { ascending: true })
@@ -61,6 +62,13 @@ export default function Units() {
   async function handleAddUnit(e) {
     e.preventDefault()
     setAddUnitError('')
+
+    if (!newUnitNumber.trim()) {
+      setAddUnitError('Enter a unit number.')
+      setAddUnitSubmitting(false)
+      return
+    }
+
     setAddUnitSubmitting(true)
     const { error } = await supabase.from('units').insert({
       unit_number: newUnitNumber,
@@ -78,7 +86,7 @@ export default function Units() {
 
   function openAssign(unit) {
     setAssignUnit(unit)
-    setAssignForm({ full_name: '', email: '', phone: '', password: '' })
+    setAssignForm({ full_name: '', email: '', phone: '', password: '', rent_amount: '' })
     setAssignError('')
     setAssignOpen(true)
   }
@@ -89,18 +97,55 @@ export default function Units() {
     setAssignSubmitting(true)
     try {
       const { data: sessionData } = await supabase.auth.getSession()
-      const { data, error } = await supabase.functions.invoke('create-resident', {
-        body: {
-          full_name: assignForm.full_name,
-          email: assignForm.email,
-          phone: assignForm.phone,
-          password: assignForm.password,
-          unit_id: assignUnit.id,
-        },
-        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
-      })
-      if (error) throw error
-      if (data?.error) throw new Error(data.error)
+      const { data, error } = await supabase.functions.invoke(
+        'create-resident',
+        {
+          body: {
+            full_name: assignForm.full_name,
+            email: assignForm.email,
+            phone: assignForm.phone,
+            password: assignForm.password,
+            unit_id: assignUnit.id,
+            rent_amount: Number(assignForm.rent_amount),
+          },
+          headers: {
+            Authorization: `Bearer ${sessionData.session?.access_token}`,
+          },
+        }
+      )
+
+      console.log('DATA:', data)
+      console.log('ERROR:', error)
+
+      if (error) {
+        alert(JSON.stringify(error))
+        throw error
+      }
+
+      if (data?.error) {
+        alert(JSON.stringify(data))
+        throw new Error(data.error)
+      }
+
+      // If create-resident returns the created resident + unit ids,
+      // create the initial payment schedule.
+      if (data?.resident_id && data?.unit_id) {
+        const { error: scheduleError } = await supabase.rpc(
+          'create_payment_schedule',
+          {
+            p_resident_id: data.resident_id,
+            p_unit_id: data.unit_id,
+            p_rent_amount: Number(assignForm.rent_amount),
+          }
+        )
+
+        if (scheduleError) {
+          console.error('create_payment_schedule error:', scheduleError)
+          alert(scheduleError.message)
+          throw scheduleError
+        }
+      }
+
       setAssignOpen(false)
       load()
     } catch (err) {
@@ -113,15 +158,34 @@ export default function Units() {
     }
   }
 
-  async function handleRemove(unit) {
-    setRemovingId(unit.id)
-    await supabase
-      .from('units')
-      .update({ resident_id: null, status: 'vacant' })
-      .eq('id', unit.id)
+  async function deleteResident(id) {
+    const confirmed = window.confirm('Delete resident and all their data?')
+
+    if (!confirmed) return
+
+    setRemovingId(id)
+
+    const { data, error } = await supabase.functions.invoke(
+      'delete-resident',
+      {
+        body: {
+          user_id: id,
+        },
+      }
+    )
+
+    if (error) {
+      console.error(error)
+      alert(error.message)
+      setRemovingId(null)
+      return
+    }
+
+    alert('Resident removed')
     setRemovingId(null)
-    load()
+    await load()
   }
+
 
   const filtered = units.filter((u) => {
     const matchesStatus =
@@ -134,7 +198,9 @@ export default function Units() {
 
     let matchesPayment = true
 
-    const latestPayment = u.payments?.[0]
+    const latestPayment = [...(u.payments || [])].sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    )[0]
 
     if (paymentFilter === 'paid') {
       matchesPayment = latestPayment?.status === 'paid'
@@ -146,7 +212,6 @@ export default function Units() {
         latestPayment?.status === 'pending' ||
         latestPayment?.status === 'partial'
     }
-
 
     return matchesStatus && matchesSearch && matchesPayment
   })
@@ -217,13 +282,14 @@ export default function Units() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleRemove(u)
+                      deleteResident(u.resident_id)
                     }}
-                    disabled={removingId === u.id}
+                    disabled={removingId === u.resident_id}
                     className="btn-secondary w-full !py-2 text-sm"
                   >
                     <UserMinus size={14} />
-                    {removingId === u.id ? 'Removing…' : 'Remove resident'}
+                    {removingId === u.resident_id ? 'Removing…' : 'Remove resident'}
+
                   </button>
                 ) : (
                   <button
@@ -306,6 +372,17 @@ export default function Units() {
               value={assignForm.password}
               onChange={(e) => setAssignForm({ ...assignForm, password: e.target.value })}
               placeholder="At least 6 characters"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink-soft mb-1.5">Rent amount</label>
+            <input
+              required
+              type="number"
+              className="input-field"
+              value={assignForm.rent_amount}
+              onChange={(e) => setAssignForm({ ...assignForm, rent_amount: e.target.value })}
+              placeholder="e.g. 25000"
             />
           </div>
           {assignError ? <p className="text-sm text-urgent bg-urgent/10 rounded-plaque px-3 py-2">{assignError}</p> : null}

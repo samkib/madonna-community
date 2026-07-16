@@ -45,11 +45,16 @@ export default function Complaints() {
       setError('You are not assigned to a unit yet. Contact your chairperson.')
       return
     }
+    if (!subject.trim()) {
+      setError('Please describe your complaint.')
+      return
+    }
+
     setSubmitting(true)
     const { error } = await supabase.from('complaints').insert({
       profile_id: user.id,
       unit_id: unit.id,
-      subject,
+      subject: subject.trim(),
       status: 'Pending',
     })
     setSubmitting(false)
@@ -63,9 +68,18 @@ export default function Complaints() {
   }
 
   async function updateStatus(id, status) {
-    setItems((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)))
-    await supabase.from('complaints').update({ status }).eq('id', id)
+    const { error } = await supabase
+      .from('complaints')
+      .update({ status })
+      .eq('id', id)
+
+    if (!error) {
+      setItems((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)))
+    } else {
+      setError(error.message)
+    }
   }
+
 
   const visibleItems = isStaff && filter !== 'All' ? items.filter((c) => c.status === filter) : items
 

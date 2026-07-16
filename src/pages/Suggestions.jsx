@@ -42,11 +42,16 @@ export default function Suggestions() {
       setError('You are not assigned to a unit yet. Contact your chairperson.')
       return
     }
+    if (!message.trim()) {
+      setError('Please enter your suggestion.')
+      return
+    }
+
     setSubmitting(true)
     const { error } = await supabase.from('suggestions').insert({
       profile_id: user.id,
       unit_id: unit.id,
-      message,
+      message: message.trim(),
     })
 
     setSubmitting(false)
@@ -55,7 +60,6 @@ export default function Suggestions() {
       return
     }
     setMessage('')
-    setTitle('')
     setModalOpen(false)
 
 

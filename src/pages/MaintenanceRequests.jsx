@@ -47,6 +47,13 @@ export default function MaintenanceRequests() {
       return
     }
     setSubmitting(true)
+
+    if (!form.description.trim()) {
+      setError('Please describe the issue.')
+      setSubmitting(false)
+      return
+    }
+
     const { error } = await supabase.from('maintenance_requests').insert({
       profile_id: user.id,
       unit_id: unit.id,
@@ -64,10 +71,21 @@ export default function MaintenanceRequests() {
     load()
   }
 
+
+
   async function updateStatus(id, status) {
-    setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
-    await supabase.from('maintenance_requests').update({ status }).eq('id', id)
+    const { error } = await supabase
+      .from('maintenance_requests')
+      .update({ status })
+      .eq('id', id)
+
+    if (!error) {
+      setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+    } else {
+      setError(error.message)
+    }
   }
+
 
   const visibleItems = isStaff && filter !== 'All' ? items.filter((r) => r.status === filter) : items
 

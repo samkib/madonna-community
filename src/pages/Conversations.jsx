@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import Loader from '../components/Loader'
 
 export default function Conversations() {
+
+  const navigate = useNavigate()
+
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState([])
   const [search, setSearch] = useState('')
@@ -79,13 +82,11 @@ export default function Conversations() {
 
           <button
             className="btn-primary mt-4"
-            onClick={() => {
-              console.log(conversation.id)
-              window.location.href = `/messages/${conversation.id}`
-            }}
+            onClick={() => navigate(`/messages/${conversation.id}`)}
           >
             Open conversation
           </button>
+
         </div>
       ))}
     </div>
