@@ -104,6 +104,10 @@ export default function Dashboard() {
         `)
         .eq('month', generateMonth)
         .eq('year', generateYear)
+        .order('unit_number', {
+          foreignTable: 'units',
+          ascending: true
+        })
 
       setGeneratedPayments(data || [])
 
@@ -129,6 +133,10 @@ export default function Dashboard() {
       `)
       .eq('month', generateMonth)
       .eq('year', generateYear)
+      .order('unit_number', {
+        foreignTable: 'units',
+        ascending: true
+      })
 
     setGeneratedPayments(data || [])
 
@@ -264,7 +272,15 @@ export default function Dashboard() {
                     Rent records for {generateMonth}/{generateYear}
                   </h3>
 
-                  {generatedPayments.map((payment) => (
+                  {[...generatedPayments]
+                    .sort((a, b) =>
+                      a.units.unit_number.localeCompare(
+                        b.units.unit_number,
+                        undefined,
+                        { numeric: true }
+                      )
+                    )
+                    .map((payment) => (
                     <div
                       key={payment.id}
                       className="border-b py-3"
@@ -402,4 +418,3 @@ export default function Dashboard() {
     </div>
   )
 }
-

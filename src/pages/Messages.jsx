@@ -6,11 +6,12 @@ import Loader from '../components/Loader'
 
 export default function Messages() {
   const { conversationId } = useParams()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const [loading, setLoading] = useState(true)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
+  const [tab, setTab] = useState('all')
 
   async function loadMessages() {
     setLoading(true)
@@ -56,7 +57,7 @@ export default function Messages() {
 
     let recipients = []
 
-    if (user.role === 'resident') {
+    if (role === 'resident') {
       const { data } = await supabase
         .from('profiles')
         .select('id')
@@ -133,8 +134,6 @@ export default function Messages() {
 
 
   if (loading) return <Loader />
-
-  const [tab, setTab] = useState('all')
 
   const filteredMessages = messages.filter((msg) => {
     if (tab === 'all') return true

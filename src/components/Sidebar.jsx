@@ -78,7 +78,7 @@ const NAV_ITEMS = [
     to: '/messages',
     label: 'Discussions',
     icon: MessageSquareWarning,
-    roles: ['caretaker', 'chairperson', 'landlady'],
+    roles: ['resident', 'caretaker', 'chairperson', 'landlady'],
   },
 
   {

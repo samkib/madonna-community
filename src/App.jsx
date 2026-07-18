@@ -68,7 +68,12 @@ export default function App() {
                 path="/messages"
                 element={
                   <ProtectedRoute
-                    allowedRoles={['caretaker', 'chairperson', 'landlady']}
+                    allowedRoles={[
+                      'resident',
+                      'caretaker',
+                      'chairperson',
+                      'landlady',
+                    ]}
                   >
                     <Conversations />
                   </ProtectedRoute>

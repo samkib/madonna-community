@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../context/AuthContext'
 import Loader from '../components/Loader'
 
 export default function Conversations() {
 
   const navigate = useNavigate()
+  const { user, role } = useAuth()
 
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState([])
@@ -14,7 +16,7 @@ export default function Conversations() {
   async function loadConversations() {
     setLoading(true)
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('conversations')
       .select(`
       *,
@@ -28,10 +30,18 @@ export default function Conversations() {
         id,
         message,
         message_type,
+        amount,
+        transaction_code,
         created_at,
         is_read
       )
     `)
+
+    if (role === 'resident') {
+      query = query.eq('resident_id', user.id)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error(error)
@@ -77,8 +87,10 @@ export default function Conversations() {
 
 
   useEffect(() => {
-    loadConversations()
-  }, [])
+    if (user) {
+      loadConversations()
+    }
+  }, [user, role])
 
   const filtered = conversations.filter((conversation) => {
     const resident =
