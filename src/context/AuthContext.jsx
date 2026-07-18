@@ -11,12 +11,14 @@ const AuthContext = createContext(undefined)
  */
 function normalizeProfile(row) {
   if (!row) return null
+
   return {
     id: row.id,
     name: row.full_name || 'Resident',
     fullName: row.full_name || 'Resident',
     email: row.email,
     phone: row.phone,
+    registration_number: row.registration_number,
     role: row.role,
     createdAt: row.created_at,
   }
@@ -132,7 +134,9 @@ export function AuthProvider({ children }) {
 
     canManagePayments:
       profile?.role === 'chairperson' ||
-      profile?.role === 'landlady',
+      profile?.role === 'landlady' ||
+      profile?.role === 'caretaker',
+
 
     canManageMessages: !!profile,
   }

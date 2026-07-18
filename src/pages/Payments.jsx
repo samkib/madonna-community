@@ -1,29 +1,34 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import Loader from '../components/Loader'
 
 export default function Payments() {
 
+
   const { user, isStaff } = useAuth()
-  const navigate = useNavigate()
 
   const [editingPayment, setEditingPayment] = useState(null)
+
+
   const [searchUnit, setSearchUnit] = useState('')
 
+  const [monthFilter, setMonthFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const [amountPaid, setAmountPaid] = useState('')
   const [mpesaMessage, setMpesaMessage] = useState('')
+
+  // editingPayment removed: residents don't edit individual payments in this flow
+
+
 
 
 
 
 
   const [payments, setPayments] = useState([])
-  const [unreadCounts, setUnreadCounts] = useState({})
   const [loading, setLoading] = useState(true)
-
 
   async function loadPayments() {
     setLoading(true)
@@ -39,38 +44,27 @@ export default function Payments() {
           full_name
         )
       `)
-      .order('created_at', { ascending: false })
+      .order('submitted_at', {
+        ascending: false,
+        nullsFirst: false,
+      })
+
 
     if (!isStaff) {
       query = query.eq('resident_id', user.id)
     }
 
-    const { data } = await query
+    const { data, error } = await query
 
-    setPayments(data || [])
-
-    const counts = {}
-
-    for (const payment of data || []) {
-      if (!payment.conversation_id) continue
-
-
-      const { count } = await supabase
-        .from('messages')
-        .select('*', {
-          count: 'exact',
-          head: true,
-        })
-        .eq('conversation_id', payment.conversation_id)
-        .eq('is_read', false)
-        .neq('sender_id', user.id)
-
-
-      counts[payment.id] = count || 0
+    if (error) {
+      console.error(error)
+      setPayments([])
+    } else {
+      setPayments(data || [])
     }
 
-    setUnreadCounts(counts)
     setLoading(false)
+
   }
 
 
@@ -81,38 +75,36 @@ export default function Payments() {
   }, [user, isStaff])
 
 
+  async function createNotification(
+    recipientId,
+    title,
+    body,
+    type,
+    referenceId = null
+  ) {
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        recipient_id: recipientId,
+        title,
+        body,
+        type,
+        reference_id: referenceId,
+      })
+
+    if (error) {
+      console.error(error)
+    }
+  }
+
   async function submitPayment(payment) {
+
     if (!amountPaid || !mpesaMessage.trim()) {
       alert('Please enter the amount and M-Pesa message.')
       return
     }
 
     try {
-      let conversationId = payment.conversation_id
-
-      // Create conversation if it doesn't exist
-      if (!conversationId) {
-        const { data: conversation, error: conversationError } =
-          await supabase
-            .from('conversations')
-            .insert({
-              resident_id: user.id,
-              unit_id: payment.unit_id,
-            })
-            .select()
-            .single()
-
-        console.log('Conversation:', conversation)
-        console.log('Error:', conversationError)
-
-        if (conversationError) {
-          alert(conversationError.message)
-          return
-        }
-
-        conversationId = conversation.id
-      }
-
       // Save payment details
       const { error: paymentError } = await supabase
         .from('payments')
@@ -120,7 +112,7 @@ export default function Payments() {
           amount_paid: Number(amountPaid),
           mpesa_statement: mpesaMessage,
           status: 'pending',
-          conversation_id: conversationId,
+          submitted_at: new Date().toISOString(),
         })
         .eq('id', payment.id)
 
@@ -128,23 +120,26 @@ export default function Payments() {
         throw paymentError
       }
 
-      // Save first message
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          message: mpesaMessage,
-        })
-
-      if (messageError) {
-        throw messageError
-      }
-
       await loadPayments()
+
       setEditingPayment(null)
       setAmountPaid('')
       setMpesaMessage('')
+
+      const { data: staffMembers } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['landlady', 'chairperson', 'caretaker'])
+
+      for (const member of staffMembers || []) {
+        await createNotification(
+          member.id,
+          'Payment submitted',
+          `${user.fullName} submitted KES ${amountPaid}.`,
+          'payment_received',
+          payment.id
+        )
+      }
     } catch (error) {
       alert(error.message)
     }
@@ -160,93 +155,125 @@ export default function Payments() {
       })
       .eq('id', paymentId)
 
+    const payment = payments.find((p) => p.id === paymentId)
+
+    if (payment) {
+      await createNotification(
+        payment.resident_id,
+        'Payment approved',
+        `Your payment for ${payment.month}/${payment.year} has been approved.`,
+        'payment_approved',
+        payment.id
+      )
+    }
+
     await loadPayments()
     setEditingPayment(null)
     setAmountPaid('')
     setMpesaMessage('')
   }
 
+  async function updateStatus(paymentId, newStatus) {
+    if (newStatus === 'paid') {
+      return approvePayment(paymentId)
+    }
 
-  async function rejectPayment(paymentId) {
-    await supabase
+    const payment = payments.find((p) => p.id === paymentId)
+
+    const { error } = await supabase
       .from('payments')
       .update({
-        status: 'rejected',
-        verified_by: user.id,
-        verified_at: new Date().toISOString(),
+        status: newStatus,
+        verified_by: newStatus === 'pending' ? null : user.id,
+        verified_at:
+          newStatus === 'pending'
+            ? null
+            : new Date().toISOString(),
       })
       .eq('id', paymentId)
 
+    if (error) {
+      console.error(error)
+      alert(error.message)
+      return
+    }
+
+    if (newStatus === 'rejected' && payment) {
+      await createNotification(
+        payment.resident_id,
+        'Payment rejected',
+        `Your payment for ${payment.month}/${payment.year} was rejected.`,
+        'payment_rejected',
+        payment.id
+      )
+    }
+
     await loadPayments()
-    setEditingPayment(null)
-    setAmountPaid('')
-    setMpesaMessage('')
   }
+
 
 
   if (loading) return <Loader />
 
   return (
     <div className="space-y-6 animate-fade-up">
-      <div className="flex items-center justify-between">
+      <div className="space-y-4">
         <h1 className="font-display text-3xl">Payments</h1>
 
-        {isStaff && (
+        <div className="flex gap-3 flex-wrap">
           <input
             className="input-field"
-            placeholder="Search unit e.g A208"
-            value={searchUnit}
-            onChange={(e) => setSearchUnit(e.target.value)}
+            placeholder="Month/Year e.g. 7/2026"
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
           />
-        )}
 
-        <button
-          className="btn-secondary relative"
-          onClick={() => {
-            if (isStaff) {
-              navigate('/messages')
-            } else {
-              const latestConversation = payments.find(
-                (payment) => payment.conversation_id
-              )
+          <select
+            className="input-field"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="paid">Paid</option>
+            <option value="partial">Partial</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
 
-              if (latestConversation) {
-                navigate(
-                  `/messages/${latestConversation.conversation_id}`
-                )
-              } else {
-                alert('No discussions yet.')
-              }
-            }
-          }}
-        >
-          View discussions
-
-          {Object.values(unreadCounts).reduce(
-            (total, count) => total + count,
-            0
-          ) > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-2 py-1">
-              {Object.values(unreadCounts).reduce(
-                (total, count) => total + count,
-                0
-              )}
-            </span>
+          {isStaff && (
+            <input
+              className="input-field"
+              placeholder="Search unit"
+              value={searchUnit}
+              onChange={(e) => setSearchUnit(e.target.value)}
+            />
           )}
-        </button>
+        </div>
       </div>
+
+
 
       {payments.length === 0 ? (
         <p>No payment records found.</p>
       ) : (
         payments
           .filter((payment) => {
-            if (!searchUnit) return true
+            const unitMatch =
+              !searchUnit ||
+              payment.units?.unit_number
+                ?.toLowerCase()
+                .includes(searchUnit.toLowerCase())
 
-            return payment.units?.unit_number
-              ?.toLowerCase()
-              .includes(searchUnit.toLowerCase())
+            const monthMatch =
+              !monthFilter ||
+              `${payment.month}/${payment.year}`.trim() === monthFilter.trim()
+
+            const statusMatch =
+              statusFilter === 'all' || payment.status === statusFilter
+
+            return unitMatch && monthMatch && statusMatch
           })
+
           .map((payment) => (
             <div key={payment.id} className="estate-card p-5">
               {isStaff && (
@@ -267,7 +294,18 @@ export default function Payments() {
 
             <p>Balance: KES {payment.balance}</p>
 
+            {payment.mpesa_statement && (
+              <div className="mt-4 p-3 rounded-lg bg-surface-alt">
+                <p className="font-medium mb-2">M-Pesa message</p>
+
+                <p className="text-sm whitespace-pre-wrap">
+                  {payment.mpesa_statement}
+                </p>
+              </div>
+            )}
+
             <div className="mt-2">
+
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium ${
                   payment.status === 'paid'
@@ -283,41 +321,60 @@ export default function Payments() {
               </span>
             </div>
 
-            {!isStaff && (
+            {!isStaff && payment.status !== 'paid' && (
               <div className="mt-4 space-y-3">
+                {editingPayment !== payment.id ? (
+                  <button
+                    onClick={() => {
+                      setEditingPayment(payment.id)
+                      setAmountPaid(payment.amount_paid || '')
+                      setMpesaMessage(payment.mpesa_statement || '')
+                    }}
+                    className="btn-primary w-full"
+                  >
+                    Pay rent
+                  </button>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      placeholder="Amount paid"
+                      value={amountPaid}
+                      onChange={(e) => setAmountPaid(e.target.value)}
+                      className="input-field"
+                    />
 
-                <input
-                  type="number"
-                  placeholder="Amount paid"
-                  value={editingPayment === payment.id ? amountPaid : ''}
-                  onChange={(e) => {
-                    setEditingPayment(payment.id)
-                    setAmountPaid(e.target.value)
-                  }}
-                  className="input-field"
-                />
+                    <textarea
+                      placeholder="Paste M-Pesa message..."
+                      value={mpesaMessage}
+                      onChange={(e) => setMpesaMessage(e.target.value)}
+                      className="input-field min-h-32"
+                    />
 
-                <textarea
-                  placeholder="Paste your M-Pesa message here..."
-                  value={editingPayment === payment.id ? mpesaMessage : ''}
-                  onChange={(e) => {
-                    setEditingPayment(payment.id)
-                    setMpesaMessage(e.target.value)
-                  }}
-                  className="input-field min-h-32"
-                />
+                    <button
+                      onClick={() => submitPayment(payment)}
+                      className="btn-primary w-full"
+                    >
+                      Submit payment
+                    </button>
 
-                <button
-                  onClick={() => submitPayment(payment)}
-                  className="btn-primary w-full"
-                >
-                  Submit payment
-                </button>
+                    <button
+                      onClick={() => {
+                        setEditingPayment(null)
+                        setAmountPaid('')
+                        setMpesaMessage('')
+                      }}
+                      className="btn-secondary w-full"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
             {isStaff && (
-              <div className="mt-4 flex flex-wrap gap-3">
+              <div className="mt-4 flex flex-wrap gap-3 items-center">
                 <button
                   onClick={() => approvePayment(payment.id)}
                   className="btn-primary"
@@ -325,30 +382,16 @@ export default function Payments() {
                   Mark as paid
                 </button>
 
-                <button
-                  onClick={() => rejectPayment(payment.id)}
-                  className="btn-secondary"
+                <select
+                  value={payment.status}
+                  onChange={(e) => updateStatus(payment.id, e.target.value)}
+                  className="input-field"
                 >
-                  Reject
-                </button>
-
-                <button
-                  onClick={async () => {
-                    await supabase
-                      .from('payments')
-                      .update({
-                        status: 'pending',
-                        verified_by: null,
-                        verified_at: null,
-                      })
-                      .eq('id', payment.id)
-
-                    await loadPayments()
-                  }}
-                  className="btn-secondary"
-                >
-                  Set pending
-                </button>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="partial">Partial</option>
+                  <option value="rejected">Rejected</option>
+                </select>
               </div>
             )}
 
@@ -360,4 +403,3 @@ export default function Payments() {
     </div>
   )
 }
-

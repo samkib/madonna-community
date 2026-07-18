@@ -36,7 +36,8 @@ export default function UnitDetails() {
           profiles:resident_id (
             full_name,
             email,
-            phone
+            phone,
+            registration_number
           )
         `)
         .eq('id', id)
@@ -145,6 +146,11 @@ export default function UnitDetails() {
             <p>Name: {unit.profiles.full_name}</p>
             <p>Email: {unit.profiles.email}</p>
             <p>Phone: {unit.profiles.phone || 'No phone number'}</p>
+
+            <p>
+              Registration No:{' '}
+              {unit.profiles.registration_number || 'Not provided'}
+            </p>
 
             {conversationId && (
               <button

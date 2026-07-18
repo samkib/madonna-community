@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sun, Moon, LogOut, Mail, Phone, ShieldCheck, Bell, BellOff } from 'lucide-react'
+import {
+  Sun,
+  Moon,
+  LogOut,
+  Mail,
+  Phone,
+  ShieldCheck,
+  Bell,
+  BellOff,
+  BadgeCheck,
+} from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import UnitPlaque from '../components/UnitPlaque'
@@ -95,6 +105,21 @@ export default function Settings() {
               <div>
                 <p className="text-xs text-ink-soft">Phone</p>
                 <p className="text-sm text-ink">{user.phone}</p>
+              </div>
+            </div>
+          ) : null}
+          {user?.registration_number ? (
+            <div className="flex items-center gap-3">
+              <BadgeCheck size={16} className="text-ink-soft shrink-0" />
+
+              <div>
+                <p className="text-xs text-ink-soft">
+                  Registration number
+                </p>
+
+                <p className="text-sm text-ink">
+                  {user.registration_number}
+                </p>
               </div>
             </div>
           ) : null}

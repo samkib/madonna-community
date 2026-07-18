@@ -17,60 +17,135 @@ Deno.serve(async (req) => {
     const announcement = payload?.record
 
     if (!announcement) {
-      return new Response(JSON.stringify({ error: 'No announcement record in payload.' }), { status: 400 })
+      return new Response(
+        JSON.stringify({
+          error: 'No announcement record in payload.',
+        }),
+        {
+          status: 400,
+        }
+      )
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')
-    const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@example.com'
 
-    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+    // Change this email to one you actually control.
+    const vapidSubject =
+      Deno.env.get('VAPID_SUBJECT') || 'mailto:sophie@madonna.com'
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey)
+    // Make sure all required secrets exist.
+    if (
+      !supabaseUrl ||
+      !serviceRoleKey ||
+      !vapidPublicKey ||
+      !vapidPrivateKey
+    ) {
+      return new Response(
+        JSON.stringify({
+          error: 'Missing environment variables.',
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    webpush.setVapidDetails(
+      vapidSubject,
+      vapidPublicKey,
+      vapidPrivateKey
+    )
+
+    const adminClient = createClient(
+      supabaseUrl,
+      serviceRoleKey
+    )
 
     const { data: subscriptions, error } = await adminClient
       .from('push_subscriptions')
       .select('id, subscription')
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 })
+      return new Response(
+        JSON.stringify({
+          error: error.message,
+        }),
+        {
+          status: 500,
+        }
+      )
     }
 
     const notificationPayload = JSON.stringify({
-      title: announcement.is_urgent ? `Urgent: ${announcement.title}` : announcement.title,
+      title: announcement.is_urgent
+        ? `Urgent: ${announcement.title}`
+        : announcement.title,
+
       body: announcement.message,
+
       url: '/announcements',
     })
 
     const results = await Promise.allSettled(
       (subscriptions || []).map(async (row) => {
         try {
-          await webpush.sendNotification(row.subscription, notificationPayload)
-        } catch (err) {
-          // 410/404 means the subscription is dead (browser data cleared,
-          // uninstalled, etc.) — clean it up so we stop trying forever.
-          if (err?.statusCode === 410 || err?.statusCode === 404) {
-            await adminClient.from('push_subscriptions').delete().eq('id', row.id)
+          await webpush.sendNotification(
+            row.subscription,
+            notificationPayload
+          )
+        } catch (err: any) {
+          // Browser cleared data or unsubscribed.
+
+          if (
+            err?.statusCode === 410 ||
+            err?.statusCode === 404
+          ) {
+            await adminClient
+              .from('push_subscriptions')
+              .delete()
+              .eq('id', row.id)
           }
+
           throw err
         }
       })
     )
 
-    const sent = results.filter((r) => r.status === 'fulfilled').length
+    const sent = results.filter(
+      (r) => r.status === 'fulfilled'
+    ).length
+
     const failed = results.length - sent
 
-    return new Response(JSON.stringify({ sent, failed }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({
+        sent,
+        failed,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unexpected error.' }),
-      { status: 500 }
+      JSON.stringify({
+        error:
+          err instanceof Error
+            ? err.message
+            : 'Unexpected error.',
+      }),
+      {
+        status: 500,
+      }
     )
   }
 })
-

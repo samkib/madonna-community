@@ -77,27 +77,35 @@ Deno.serve(async (req) => {
 
     if (
       profileError ||
-      !["chairperson", "landlady"].includes(callerProfile?.role)
-    ) {
+      !['chairperson', 'landlady', 'caretaker'].includes(
+  callerProfile?.role )
+) {
       return jsonResponse(
         {
           error:
-            "Only the chairperson or landlady can remove residents.",
+            "Only the chairperson or landlady or caretaker can remove residents.",
         },
         403
       );
     }
 
     const body = await req.json();
-    console.log("Received body:", body);
+console.log("Received body:", body);
 
-    const user_id = body?.user_id;
+const user_id = body?.user_id;
 
-    console.log("Deleting:", user_id);
+if (user_id === caller.id) {
+  return jsonResponse(
+    { error: "You cannot delete your own account." },
+    400
+  );
+}
 
-    if (!user_id) {
-      return jsonResponse({ error: "user_id is required." }, 400);
-    }
+console.log("Deleting:", user_id);
+
+if (!user_id) {
+  return jsonResponse({ error: "user_id is required." }, 400);
+}
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 

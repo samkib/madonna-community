@@ -36,82 +36,100 @@ Deno.serve(async (req) => {
 
     const {
       data: { user: caller },
-      error: callerError,
     } = await callerClient.auth.getUser()
 
-    if (callerError || !caller) {
+    if (!caller) {
       return jsonResponse(
         { error: 'Not authenticated.' },
         401
       )
     }
 
-    const {
-      data: callerProfile,
-      error: profileError,
-    } = await callerClient
+    const { data: profile } = await callerClient
       .from('profiles')
       .select('role')
       .eq('id', caller.id)
       .single()
 
     if (
-      profileError ||
-      !['chairperson', 'landlady'].includes(
-        callerProfile?.role
-      )
+      !profile ||
+      !['chairperson', 'landlady'].includes(profile.role)
     ) {
       return jsonResponse(
-        {
-          error:
-            'Only the chairperson or landlady can remove residents.',
-        },
+        { error: 'Unauthorized.' },
         403
       )
     }
 
-    const { resident_id } = await req.json()
-
-    if (!resident_id) {
-      return jsonResponse(
-        { error: 'resident_id is required.' },
-        400
-      )
-    }
+    const {
+      full_name,
+      email,
+      phone,
+      password,
+      unit_id,
+      rent_amount,
+      registration_number,
+    } = await req.json()
 
     const adminClient = createClient(
       supabaseUrl,
       serviceRoleKey
     )
 
-    const { error: rpcError } = await adminClient.rpc(
-      'remove_resident',
-      {
-        p_resident_id: resident_id,
-      }
-    )
+    const { data: newUser, error: createError } =
+      await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      })
 
-    if (rpcError) {
+    if (createError) {
       return jsonResponse(
-        { error: rpcError.message },
+        { error: createError.message },
         400
       )
     }
 
-    const { error: deleteAuthError } =
-      await adminClient.auth.admin.deleteUser(
-        resident_id
-      )
+    const userId = newUser.user.id
 
-    if (deleteAuthError) {
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .insert({
+        id: userId,
+        full_name,
+        email,
+        phone,
+        role: 'resident',
+        registration_number,
+      })
+
+    if (profileError) {
       return jsonResponse(
-        { error: deleteAuthError.message },
+        { error: profileError.message },
+        400
+      )
+    }
+
+    const { error: unitError } = await adminClient
+      .from('units')
+      .update({
+        resident_id: userId,
+        status: 'occupied',
+        rent_amount: rent_amount,
+      })
+      .eq('id', unit_id)
+
+    if (unitError) {
+      return jsonResponse(
+        { error: unitError.message },
         400
       )
     }
 
     return jsonResponse({
       success: true,
+      resident_id: userId,
+      unit_id,
     })
   } catch (err) {
     return jsonResponse(

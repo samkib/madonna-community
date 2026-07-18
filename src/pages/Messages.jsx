@@ -43,12 +43,53 @@ export default function Messages() {
         conversation_id: conversationId,
         sender_id: user.id,
         message: newMessage,
+        message_type: 'chat',
       })
+
+    const { data: conversation } = await supabase
+      .from('conversations')
+      .select(`
+        resident_id
+      `)
+      .eq('id', conversationId)
+      .single()
+
+    let recipients = []
+
+    if (user.role === 'resident') {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['landlady', 'caretaker', 'chairperson'])
+
+      recipients = data || []
+    } else {
+      recipients = [
+        {
+          id: conversation.resident_id,
+        },
+      ]
+    }
+
+    if (recipients.length > 0) {
+      await supabase
+        .from('notifications')
+        .insert(
+          recipients.map((person) => ({
+            recipient_id: person.id,
+            title: 'New message',
+            body: newMessage,
+            type: 'new_message',
+            reference_id: conversationId,
+          }))
+        )
+    }
 
     if (error) {
       alert(error.message)
       return
     }
+
 
     setNewMessage('')
     loadMessages()
@@ -62,14 +103,44 @@ export default function Messages() {
         .from('messages')
         .update({ is_read: true })
         .eq('conversation_id', conversationId)
+        .neq('sender_id', user.id)
     }
 
     loadMessages()
     markAsRead()
-  }, [conversationId])
+
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          loadMessages()
+          markAsRead()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [conversationId, user.id])
 
 
   if (loading) return <Loader />
+
+  const [tab, setTab] = useState('all')
+
+  const filteredMessages = messages.filter((msg) => {
+    if (tab === 'all') return true
+
+    return msg.message_type === tab
+  })
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -77,22 +148,77 @@ export default function Messages() {
         Conversation
       </h1>
 
+      <div className="flex gap-2">
+        <button
+          className={`btn-secondary ${
+            tab === 'all' ? 'ring-2 ring-primary' : ''
+          }`}
+          onClick={() => setTab('all')}
+        >
+          All
+        </button>
+
+        <button
+          className={`btn-secondary ${
+            tab === 'chat' ? 'ring-2 ring-primary' : ''
+          }`}
+          onClick={() => setTab('chat')}
+        >
+          Chats
+        </button>
+
+        <button
+          className={`btn-secondary ${
+            tab === 'payment' ? 'ring-2 ring-primary' : ''
+          }`}
+          onClick={() => setTab('payment')}
+        >
+          Payments
+        </button>
+      </div>
+
       <div className="estate-card p-5 space-y-4">
-        {messages.length === 0 ? (
+        {filteredMessages.length === 0 ? (
           <p>No messages yet.</p>
         ) : (
-          messages.map((msg) => (
-            <div key={msg.id} className="border-b pb-3">
+          filteredMessages.map((msg) => (
+            <div
+              key={msg.id}
+              className="border-b pb-4"
+            >
               <p className="font-medium">
                 {msg.profiles?.full_name}
               </p>
 
-              <p className="text-sm text-ink-soft">
-                {msg.message}
-              </p>
+              {msg.message_type === 'payment' ? (
+                <div className="mt-2 rounded-xl bg-green-50 border border-green-200 p-4">
+                  <p className="font-semibold text-green-700">
+                    💰 Payment Submitted
+                  </p>
+
+                  <p className="text-sm mt-2">
+                    Amount: KES {msg.amount}
+                  </p>
+
+                  {msg.transaction_code && (
+                    <p className="text-sm">
+                      Transaction: {msg.transaction_code}
+                    </p>
+                  )}
+
+                  <div className="mt-3 rounded-lg bg-white p-3 text-sm whitespace-pre-wrap">
+                    {msg.message}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-ink-soft mt-2 whitespace-pre-wrap">
+                  {msg.message}
+                </p>
+              )}
             </div>
           ))
         )}
+
       </div>
 
       <div className="estate-card p-5 space-y-3">

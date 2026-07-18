@@ -24,9 +24,17 @@ export default function Units() {
 
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignUnit, setAssignUnit] = useState(null)
-  const [assignForm, setAssignForm] = useState({ full_name: '', email: '', phone: '', password: '', rent_amount: '' })
+  const [assignForm, setAssignForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    registration_number: '',
+    password: '',
+    rent_amount: '',
+  })
   const [assignError, setAssignError] = useState('')
   const [assignSubmitting, setAssignSubmitting] = useState(false)
+
 
   const [removingId, setRemovingId] = useState(null)
 
@@ -46,6 +54,9 @@ export default function Units() {
           status,
           month,
           year,
+          amount_paid,
+          rent_amount,
+          balance,
           created_at
         )
       `)
@@ -86,10 +97,18 @@ export default function Units() {
 
   function openAssign(unit) {
     setAssignUnit(unit)
-    setAssignForm({ full_name: '', email: '', phone: '', password: '', rent_amount: '' })
+    setAssignForm({
+      full_name: '',
+      email: '',
+      phone: '',
+      registration_number: '',
+      password: '',
+      rent_amount: '',
+    })
     setAssignError('')
     setAssignOpen(true)
   }
+
 
   async function handleAssign(e) {
     e.preventDefault()
@@ -104,10 +123,12 @@ export default function Units() {
             full_name: assignForm.full_name,
             email: assignForm.email,
             phone: assignForm.phone,
+            registration_number: assignForm.registration_number,
             password: assignForm.password,
             unit_id: assignUnit.id,
             rent_amount: Number(assignForm.rent_amount),
           },
+
           headers: {
             Authorization: `Bearer ${sessionData.session?.access_token}`,
           },
@@ -159,17 +180,24 @@ export default function Units() {
   }
 
   async function deleteResident(id) {
-    const confirmed = window.confirm('Delete resident and all their data?')
+    const confirmed = window.confirm(
+      'Delete resident and all their data?'
+    )
 
     if (!confirmed) return
 
     setRemovingId(id)
+
+    const { data: sessionData } = await supabase.auth.getSession()
 
     const { data, error } = await supabase.functions.invoke(
       'delete-resident',
       {
         body: {
           user_id: id,
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
         },
       }
     )
@@ -208,9 +236,10 @@ export default function Units() {
 
     if (paymentFilter === 'unpaid') {
       matchesPayment =
-        latestPayment?.status === 'unpaid' ||
+        !latestPayment ||
         latestPayment?.status === 'pending' ||
-        latestPayment?.status === 'partial'
+        latestPayment?.status === 'partial' ||
+        latestPayment?.status === 'rejected'
     }
 
     return matchesStatus && matchesSearch && matchesPayment
@@ -363,6 +392,23 @@ export default function Units() {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-ink-soft mb-1.5">
+              Registration number
+            </label>
+
+            <input
+              className="input-field"
+              value={assignForm.registration_number}
+              onChange={(e) =>
+                setAssignForm({
+                  ...assignForm,
+                  registration_number: e.target.value,
+                })
+              }
+              placeholder="Optional"
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-ink-soft mb-1.5">Temporary password</label>
             <input
               required
@@ -374,6 +420,7 @@ export default function Units() {
               placeholder="At least 6 characters"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-ink-soft mb-1.5">Rent amount</label>
             <input
